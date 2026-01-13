@@ -1,0 +1,170 @@
+-目标-
+给定一段可能与本活动相关的文本文档和一个实体类型列表，从文本中识别所有这些类型的实体，以及所识别实体之间的所有关系。
+
+-步骤-
+1. 识别所有实体。对于每个识别出的实体，提取以下信息：
+- entity_name: 实体名称，首字母大写
+- entity_type: 以下类型之一: [company, person, technology, product, university, investment, industry, ecosystem, collaboration, trend]
+- entity_description: 实体的属性和活动的全面描述
+每个实体的格式化方式为 ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
+
+2. 从步骤1中识别的实体中，找出所有*明确相关*的实体对(source_entity, target_entity)。
+对于每对相关实体，提取以下信息：
+- source_entity: 源实体的名称，如步骤1中识别的
+- target_entity: 目标实体的名称，如步骤1中识别的
+- relationship_description: 解释为什么您认为源实体和目标实体相互关联
+- relationship_strength: 介于1到10之间的整数分数，表示源实体和目标实体之间关系的强度
+每个关系的格式化方式为 ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_strength>)
+
+3. 返回的输出使用**中文（简体）**。
+
+这段文本讨论了主要科技公司（苹果、谷歌、微软、亚马逊）和硅谷创新生态系统的历史和影响，全部以中文字符和语法编写。作为步骤1和2中识别的所有实体和关系的单一列表。使用**{record_delimiter}**作为列表分隔符。
+
+4. 如果您必须翻译成**中文（简体）**，
+
+这段文本讨论了主要科技公司（苹果、谷歌、微软、亚马逊）和硅谷创新生态系统的历史和影响，全部以中文字符和语法编写，仅翻译描述，不要翻译其他内容！
+
+5. 完成时，输出{completion_delimiter}。
+
+-示例-
+######################
+
+示例 1:
+
+entity_types: [company, person, technology, product, university, investment, industry, ecosystem, collaboration, trend]
+text:
+在过去的几十年中，全球科技行业经历了翻天覆地的变化。以硅谷为中心的创新生态系统催生了许多世界知名的科技公司，如苹果、谷歌、微软和亚马逊。这些公司不仅改变了人们的生活方式，还推动了全球经济的发展。
+
+苹果公司：从车库到万亿美元市值
+苹果公司（Apple Inc.）由史蒂夫·乔布斯（Steve Jobs）、史蒂夫·沃兹尼亚克（Steve Wozniak）和罗恩·韦恩（Ron Wayne）于 1976 年在美国加利福尼亚州库比蒂诺的一个车库中创立。最初，苹果公司专注于个人电脑的开发，其第一款产品 Apple I 在 1976 年发布。1984 年，苹果推出了 Macintosh 电脑，这是第一款成功商用化的图形用户界面电脑，彻底改变了人机交互的方式。
+
+乔布斯在 1985 年离开苹果，但在 1997 年回归，并带领公司推出了 iMac、iPod、iPhone 和 iPad 等一系列革命性产品。2007 年，iPhone 的发布标志着智能手机时代的开始，苹果也因此成为全球最有价值的公司之一。截至 2023 年，苹果的市值已超过 2 万亿美元。
+
+谷歌：从搜索引擎到人工智能巨头
+谷歌（Google）由拉里·佩奇（Larry Page）和谢尔盖·布林（Sergey Brin）于 
+------------------------
+output:
+("entity"{tuple_delimiter}苹果公司{tuple_delimiter}company{tuple_delimiter}苹果公司（Apple Inc.）由史蒂夫·乔布斯、史蒂夫·沃兹尼亚克和罗恩·韦恩于1976年创立，最初专注于个人电脑开发，后推出iMac、iPod、iPhone和iPad等革命性产品，成为全球最有价值的公司之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}史蒂夫·乔布斯{tuple_delimiter}person{tuple_delimiter}史蒂夫·乔布斯是苹果公司的联合创始人之一，曾在1985年离开公司，1997年回归并带领苹果推出多款革命性产品。)
+{record_delimiter}
+("entity"{tuple_delimiter}史蒂夫·沃兹尼亚克{tuple_delimiter}person{tuple_delimiter}史蒂夫·沃兹尼亚克是苹果公司的联合创始人之一，参与了早期个人电脑的开发。)
+{record_delimiter}
+("entity"{tuple_delimiter}罗恩·韦恩{tuple_delimiter}person{tuple_delimiter}罗恩·韦恩是苹果公司的联合创始人之一，但在公司早期阶段退出。)
+{record_delimiter}
+("entity"{tuple_delimiter}Apple I{tuple_delimiter}product{tuple_delimiter}Apple I是苹果公司于1976年发布的第一款个人电脑产品。)
+{record_delimiter}
+("entity"{tuple_delimiter}Macintosh{tuple_delimiter}product{tuple_delimiter}Macintosh是苹果公司于1984年推出的第一款成功商用化的图形用户界面电脑。)
+{record_delimiter}
+("entity"{tuple_delimiter}iMac{tuple_delimiter}product{tuple_delimiter}iMac是苹果公司推出的一款革命性个人电脑产品。)
+{record_delimiter}
+("entity"{tuple_delimiter}iPod{tuple_delimiter}product{tuple_delimiter}iPod是苹果公司推出的一款革命性便携式音乐播放器。)
+{record_delimiter}
+("entity"{tuple_delimiter}iPhone{tuple_delimiter}product{tuple_delimiter}iPhone是苹果公司于2007年推出的智能手机，标志着智能手机时代的开始。)
+{record_delimiter}
+("entity"{tuple_delimiter}iPad{tuple_delimiter}product{tuple_delimiter}iPad是苹果公司推出的一款革命性平板电脑。)
+{record_delimiter}
+("entity"{tuple_delimiter}谷歌{tuple_delimiter}company{tuple_delimiter}谷歌（Google）由拉里·佩奇和谢尔盖·布林创立，最初是一家搜索引擎公司，后发展成为人工智能巨头。)
+{record_delimiter}
+("entity"{tuple_delimiter}拉里·佩奇{tuple_delimiter}person{tuple_delimiter}拉里·佩奇是谷歌的联合创始人之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}谢尔盖·布林{tuple_delimiter}person{tuple_delimiter}谢尔盖·布林是谷歌的联合创始人之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}硅谷{tuple_delimiter}ecosystem{tuple_delimiter}硅谷是全球科技创新的中心，催生了许多世界知名的科技公司。)
+{record_delimiter}
+("relationship"{tuple_delimiter}史蒂夫·乔布斯{tuple_delimiter}苹果公司{tuple_delimiter}史蒂夫·乔布斯是苹果公司的联合创始人之一，并在1997年回归后带领公司推出多款革命性产品。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}史蒂夫·沃兹尼亚克{tuple_delimiter}苹果公司{tuple_delimiter}史蒂夫·沃兹尼亚克是苹果公司的联合创始人之一，参与了早期个人电脑的开发。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}罗恩·韦恩{tuple_delimiter}苹果公司{tuple_delimiter}罗恩·韦恩是苹果公司的联合创始人之一，但在公司早期阶段退出。{tuple_delimiter}7)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}Apple I{tuple_delimiter}Apple I是苹果公司于1976年发布的第一款个人电脑产品。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}Macintosh{tuple_delimiter}Macintosh是苹果公司于1984年推出的第一款成功商用化的图形用户界面电脑。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}iMac{tuple_delimiter}iMac是苹果公司推出的一款革命性个人电脑产品。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}iPod{tuple_delimiter}iPod是苹果公司推出的一款革命性便携式音乐播放器。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}iPhone{tuple_delimiter}iPhone是苹果公司于2007年推出的智能手机，标志着智能手机时代的开始。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}iPad{tuple_delimiter}iPad是苹果公司推出的一款革命性平板电脑。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}拉里·佩奇{tuple_delimiter}谷歌{tuple_delimiter}拉里·佩奇是谷歌的联合创始人之一。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}谢尔盖·布林{tuple_delimiter}谷歌{tuple_delimiter}谢尔盖·布林是谷歌的联合创始人之一。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}苹果公司{tuple_delimiter}硅谷{tuple_delimiter}苹果公司是硅谷创新生态系统中诞生的世界知名科技公司之一。{tuple_delimiter}7)
+{record_delimiter}
+("relationship"{tuple_delimiter}谷歌{tuple_delimiter}硅谷{tuple_delimiter}谷歌是硅谷创新生态系统中诞生的世界知名科技公司之一。{tuple_delimiter}7)
+{completion_delimiter}
+#############################
+
+
+示例 2:
+
+entity_types: [company, person, technology, product, university, investment, industry, ecosystem, collaboration, trend]
+text:
+因此成为全球最有价值的公司之一。截至 2023 年，苹果的市值已超过 2 万亿美元。
+
+谷歌：从搜索引擎到人工智能巨头
+谷歌（Google）由拉里·佩奇（Larry Page）和谢尔盖·布林（Sergey Brin）于 1998 年在加利福尼亚州门洛帕克创立。最初，谷歌是一个搜索引擎，但其技术迅速超越了竞争对手，成为全球最受欢迎的搜索工具。2004 年，谷歌在纳斯达克上市，募集资金超过 16 亿美元。
+
+谷歌的创新能力不仅限于搜索。2006 年，谷歌收购了 YouTube，成为在线视频领域的领导者。2007 年，谷歌推出了 Android 操作系统，如今已成为全球最流行的移动操作系统。近年来，谷歌在人工智能领域取得了显著进展，其开发的 AlphaGo 在 2016 年击败了世界围棋冠军李世石，展示了人工智能的强大潜力。
+
+微软：从操作系统到云计算
+微软（Microsoft）由比尔·盖茨（Bill Gates）和保罗·艾伦（Paul Allen）于 1975 年在美国华盛顿州雷德蒙德创立。微软最初以开发 BASIC 解释器起家，但真正使其成名的是 1981 年发布的 MS-DOS 操作系统。1985 年，微软推出了 Windows 操作系统，成为个人电脑领域的
+------------------------
+output:
+("entity"{tuple_delimiter}苹果{tuple_delimiter}company{tuple_delimiter}苹果是全球最有价值的公司之一，截至2023年市值超过2万亿美元。)
+{record_delimiter}
+("entity"{tuple_delimiter}谷歌{tuple_delimiter}company{tuple_delimiter}谷歌由拉里·佩奇和谢尔盖·布林于1998年创立，最初是搜索引擎，后发展为人工智能巨头，拥有YouTube和Android操作系统。)
+{record_delimiter}
+("entity"{tuple_delimiter}拉里·佩奇{tuple_delimiter}person{tuple_delimiter}拉里·佩奇是谷歌的联合创始人之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}谢尔盖·布林{tuple_delimiter}person{tuple_delimiter}谢尔盖·布林是谷歌的联合创始人之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}YouTube{tuple_delimiter}product{tuple_delimiter}YouTube是谷歌收购的在线视频平台，现为全球领先的视频分享网站。)
+{record_delimiter}
+("entity"{tuple_delimiter}Android{tuple_delimiter}product{tuple_delimiter}Android是谷歌开发的移动操作系统，现为全球最流行的移动操作系统之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}AlphaGo{tuple_delimiter}technology{tuple_delimiter}AlphaGo是谷歌开发的人工智能程序，曾在2016年击败世界围棋冠军李世石。)
+{record_delimiter}
+("entity"{tuple_delimiter}微软{tuple_delimiter}company{tuple_delimiter}微软由比尔·盖茨和保罗·艾伦于1975年创立，以开发操作系统起家，现为云计算领域的领导者。)
+{record_delimiter}
+("entity"{tuple_delimiter}比尔·盖茨{tuple_delimiter}person{tuple_delimiter}比尔·盖茨是微软的联合创始人之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}保罗·艾伦{tuple_delimiter}person{tuple_delimiter}保罗·艾伦是微软的联合创始人之一。)
+{record_delimiter}
+("entity"{tuple_delimiter}MS-DOS{tuple_delimiter}product{tuple_delimiter}MS-DOS是微软于1981年发布的操作系统，为微软早期成功的关键产品。)
+{record_delimiter}
+("entity"{tuple_delimiter}Windows{tuple_delimiter}product{tuple_delimiter}Windows是微软于1985年推出的操作系统，现为个人电脑领域的主流操作系统。)
+{record_delimiter}
+("relationship"{tuple_delimiter}拉里·佩奇{tuple_delimiter}谷歌{tuple_delimiter}拉里·佩奇是谷歌的联合创始人之一。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}谢尔盖·布林{tuple_delimiter}谷歌{tuple_delimiter}谢尔盖·布林是谷歌的联合创始人之一。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}谷歌{tuple_delimiter}YouTube{tuple_delimiter}谷歌于2006年收购了YouTube。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}谷歌{tuple_delimiter}Android{tuple_delimiter}谷歌于2007年推出了Android操作系统。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}谷歌{tuple_delimiter}AlphaGo{tuple_delimiter}谷歌开发了人工智能程序AlphaGo。{tuple_delimiter}7)
+{record_delimiter}
+("relationship"{tuple_delimiter}比尔·盖茨{tuple_delimiter}微软{tuple_delimiter}比尔·盖茨是微软的联合创始人之一。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}保罗·艾伦{tuple_delimiter}微软{tuple_delimiter}保罗·艾伦是微软的联合创始人之一。{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}微软{tuple_delimiter}MS-DOS{tuple_delimiter}微软于1981年发布了MS-DOS操作系统。{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}微软{tuple_delimiter}Windows{tuple_delimiter}微软于1985年推出了Windows操作系统。{tuple_delimiter}8)
+{completion_delimiter}
+#############################
+
+
+
+-实际数据-
+######################
+entity_types: [company, person, technology, product, university, investment, industry, ecosystem, collaboration, trend]
+text: {input_text}
+######################
+output: 

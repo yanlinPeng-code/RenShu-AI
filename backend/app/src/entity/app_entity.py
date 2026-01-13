@@ -1,0 +1,1 @@
+DEFAULT_APP_NAME="Smart-TCM"

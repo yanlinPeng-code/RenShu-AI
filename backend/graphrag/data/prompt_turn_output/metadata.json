@@ -1,0 +1,23 @@
+{
+  "domain": "自动检测",
+  "language": "自动检测",
+  "chunk_size": 500,
+  "overlap": 100,
+  "limit": 5,
+  "selection_method": "random",
+  "generated_at": 1743581692.5963266,
+  "files": [
+    {
+      "name": "extract_graph.txt",
+      "description": "实体提取提示词"
+    },
+    {
+      "name": "summarize_descriptions.txt",
+      "description": "实体摘要提示词"
+    },
+    {
+      "name": "community_report_graph.txt",
+      "description": "社区摘要提示词"
+    }
+  ]
+}

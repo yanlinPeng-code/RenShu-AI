@@ -1,0 +1,95 @@
+
+-Goal-
+Given a text document that is potentially relevant to this activity and a list of entity types, identify all entities of those types from the text and all relationships among the identified entities.
+
+-Steps-
+1. Identify all entities. For each identified entity, extract the following information:
+- entity_name: Name of the entity, capitalized
+- entity_type: One of the following types: [customer, company, product, brand, rating, review, date]
+- entity_description: Comprehensive description of the entity's attributes and activities
+Format each entity as ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
+
+2. From the entities identified in step 1, identify all pairs of (source_entity, target_entity) that are *clearly related* to each other.
+For each pair of related entities, extract the following information:
+- source_entity: name of the source entity, as identified in step 1
+- target_entity: name of the target entity, as identified in step 1
+- relationship_description: explanation as to why you think the source entity and the target entity are related to each other
+- relationship_strength: an integer score between 1 to 10, indicating strength of the relationship between the source entity and target entity
+Format each relationship as ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_strength>)
+
+3. Return output in The primary language of the provided text is **Chinese**. The text contains Chinese characters and phrases, such as "客户" (customer), "评价" (review), and "智能" (smart), which are typical of written Chinese. Additionally, the structure and grammar align with Chinese syntax. as a single list of all the entities and relationships identified in steps 1 and 2. Use **{record_delimiter}** as the list delimiter.
+
+4. If you have to translate into The primary language of the provided text is **Chinese**. The text contains Chinese characters and phrases, such as "客户" (customer), "评价" (review), and "智能" (smart), which are typical of written Chinese. Additionally, the structure and grammar align with Chinese syntax., just translate the descriptions, nothing else!
+
+5. When finished, output {completion_delimiter}.
+
+-Examples-
+######################
+
+Example 1:
+
+entity_types: [customer, company, product, brand, rating, review, date]
+text:
+客户 图龙信息网络有限公司数字科技有限公司 对智能电视产品 三星 智能电视 Plus 的评价(评分:3星): "使用体验中规中矩，开机速度快，同时音量调节不够精细。" (评价日期:2023-08-04)
+------------------------
+output:
+("entity"{tuple_delimiter}图龙信息网络有限公司数字科技有限公司{tuple_delimiter}customer{tuple_delimiter}图龙信息网络有限公司数字科技有限公司是评价三星智能电视 Plus 的客户)
+{record_delimiter}
+("entity"{tuple_delimiter}三星{tuple_delimiter}brand{tuple_delimiter}三星是智能电视 Plus 的品牌)
+{record_delimiter}
+("entity"{tuple_delimiter}智能电视 Plus{tuple_delimiter}product{tuple_delimiter}智能电视 Plus 是三星品牌的一款智能电视产品)
+{record_delimiter}
+("entity"{tuple_delimiter}3星{tuple_delimiter}rating{tuple_delimiter}客户对三星智能电视 Plus 的评分为 3 星)
+{record_delimiter}
+("entity"{tuple_delimiter}使用体验中规中矩，开机速度快，同时音量调节不够精细。{tuple_delimiter}review{tuple_delimiter}客户对三星智能电视 Plus 的评价内容)
+{record_delimiter}
+("entity"{tuple_delimiter}2023-08-04{tuple_delimiter}date{tuple_delimiter}客户对三星智能电视 Plus 的评价日期)
+{record_delimiter}
+("relationship"{tuple_delimiter}图龙信息网络有限公司数字科技有限公司{tuple_delimiter}智能电视 Plus{tuple_delimiter}图龙信息网络有限公司数字科技有限公司评价了三星智能电视 Plus{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}智能电视 Plus{tuple_delimiter}三星{tuple_delimiter}智能电视 Plus 是三星品牌的产品{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}图龙信息网络有限公司数字科技有限公司{tuple_delimiter}3星{tuple_delimiter}图龙信息网络有限公司数字科技有限公司对三星智能电视 Plus 的评分为 3 星{tuple_delimiter}7)
+{record_delimiter}
+("relationship"{tuple_delimiter}图龙信息网络有限公司数字科技有限公司{tuple_delimiter}使用体验中规中矩，开机速度快，同时音量调节不够精细。{tuple_delimiter}图龙信息网络有限公司数字科技有限公司对三星智能电视 Plus 的评价内容{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}图龙信息网络有限公司数字科技有限公司{tuple_delimiter}2023-08-04{tuple_delimiter}图龙信息网络有限公司数字科技有限公司在 2023-08-04 对三星智能电视 Plus 进行了评价{tuple_delimiter}7)
+{completion_delimiter}
+#############################
+
+
+Example 2:
+
+entity_types: [customer, company, product, brand, rating, review, date]
+text:
+客户 雨林木风计算机信息有限公司电子科技有限公司 对智能扫地机器人产品 海尔智慧家庭 智能扫地机器人 Ultra 的评价(评分:4星): "这款智能扫地机器人质量很好，清理方便。总体来说很满意。" (评价日期:2025-02-20)
+------------------------
+output:
+("entity"{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司{tuple_delimiter}customer{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司是一家客户公司，对智能扫地机器人产品进行了评价)
+{record_delimiter}
+("entity"{tuple_delimiter}海尔智慧家庭 智能扫地机器人 Ultra{tuple_delimiter}product{tuple_delimiter}海尔智慧家庭 智能扫地机器人 Ultra 是一款智能扫地机器人产品，客户对其进行了评价)
+{record_delimiter}
+("entity"{tuple_delimiter}4星{tuple_delimiter}rating{tuple_delimiter}客户对海尔智慧家庭 智能扫地机器人 Ultra 的评分为4星)
+{record_delimiter}
+("entity"{tuple_delimiter}这款智能扫地机器人质量很好，清理方便。总体来说很满意。{tuple_delimiter}review{tuple_delimiter}客户对海尔智慧家庭 智能扫地机器人 Ultra 的评价内容)
+{record_delimiter}
+("entity"{tuple_delimiter}2025-02-20{tuple_delimiter}date{tuple_delimiter}客户对海尔智慧家庭 智能扫地机器人 Ultra 的评价日期)
+{record_delimiter}
+("relationship"{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司{tuple_delimiter}海尔智慧家庭 智能扫地机器人 Ultra{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司对海尔智慧家庭 智能扫地机器人 Ultra 进行了评价{tuple_delimiter}8)
+{record_delimiter}
+("relationship"{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司{tuple_delimiter}4星{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司对海尔智慧家庭 智能扫地机器人 Ultra 的评分为4星{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司{tuple_delimiter}这款智能扫地机器人质量很好，清理方便。总体来说很满意。{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司对海尔智慧家庭 智能扫地机器人 Ultra 的评价内容{tuple_delimiter}9)
+{record_delimiter}
+("relationship"{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司{tuple_delimiter}2025-02-20{tuple_delimiter}雨林木风计算机信息有限公司电子科技有限公司对海尔智慧家庭 智能扫地机器人 Ultra 的评价日期为2025-02-20{tuple_delimiter}9)
+{completion_delimiter}
+#############################
+
+
+
+-Real Data-
+######################
+entity_types: [customer, company, product, brand, rating, review, date]
+text: {input_text}
+######################
+output:

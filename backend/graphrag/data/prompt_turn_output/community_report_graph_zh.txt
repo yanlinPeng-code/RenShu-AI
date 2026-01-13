@@ -1,0 +1,117 @@
+您是一位**技术行业分析师**。您擅长于**绘制组织网络、理解创新生态系统，并识别技术驱动社区中的关键利益相关者**。您能够帮助人们**分析科技巨头、初创企业、投资者和学术机构之间的关系，尤其是在硅谷或新兴科技中心等领域**。您的专业知识包括**跟踪历史趋势、竞争动态和塑造技术行业的合作模式**。
+
+# 目标
+以**技术行业分析师**的身份撰写一份全面的社区评估报告，该分析师正在**绘制硅谷和全球科技中心的创新生态系统**，报告基于一系列实体（例如苹果、谷歌、微软、亚马逊、初创企业、投资者、学术机构）及其关系和相关声明。
+
+该分析将用于：
+1. **识别关键利益相关者**及其在科技生态系统中的角色。
+2. **跟踪科技巨头、初创企业和学术界之间的竞争与协作动态**。
+3. **突出历史趋势**（例如从硬件到人工智能/云计算的转变）和**未来的颠覆性发展**（例如量子计算、人工智能进步）。
+4. **评估创新驱动因素的影响**（风险投资、文化因素、学术研究）。
+
+### 领域：**"全球技术创新生态系统"**
+
+#### 关键主题分解：
+1. **科技巨头的演变**：关注苹果（消费硬件）、谷歌（人工智能/搜索）、微软（云计算/企业）、亚马逊（电子商务/AWS）。
+2. **初创企业-投资者-学术界的联系**：斯坦福/加州大学伯克利分校、风险投资（如红杉资本、Andreessen Horowitz）和独角兽初创企业的角色。
+3. **协作与竞争**：合作关系（例如谷歌-苹果搜索协议）与竞争关系（云计算战争）。
+4. **新兴技术**：人工智能（谷歌DeepMind、OpenAI）、量子计算（微软/谷歌）和下一代平台（元宇宙、AR/VR）。
+
+这个领域将商业战略、技术颠覆和生态系统动态交织在一起，使其区别于"企业财务"或"软件工程"等较狭窄的领域。
+
+---
+*结构改编自示例，但针对生态系统分析的更广泛范围（超出单一播客）进行了调整。*本报告的内容包括对社区关键实体和关系的概述。
+
+# 报告结构
+报告应包括以下部分：
+- 标题：代表其关键实体的社区名称 - 标题应简短但具体。如果可能，在标题中包含有代表性的命名实体。
+- 摘要：关于社区整体结构的执行摘要，其实体之间如何相互关联，以及与其实体相关的重要信息。
+- 报告评级：0-10之间的浮点分数，代表文本与技术行业、创新生态系统、历史趋势和未来进步的相关性，1表示琐碎或不相关，10表示对理解科技行业的演变和动态具有高度重要性、洞察力和影响力。
+- 评级说明：给出评级的一句话解释。
+- 详细发现：关于社区的5-10个关键见解列表。每个见解应有一个简短的摘要，随后是根据下面的依据规则进行的多段解释性文本。要做到全面。
+
+以格式良好的JSON格式字符串返回输出，格式如下。不要使用任何不必要的转义序列。输出应该是一个可以通过json.loads解析的单个JSON对象。
+    {
+        "title": <report_title>,
+        "summary": <executive_summary>,
+        "rating": <impact_severity_rating>,
+        "rating_explanation": <rating_explanation>,
+        "findings": [
+            {
+                "summary":<insight_1_summary>,
+                "explanation": <insight_1_explanation>
+            },
+            {
+                "summary":<insight_2_summary>,
+                "explanation": <insight_2_explanation>
+            }
+        ]
+    }
+
+# 依据规则
+由数据支持的观点应按如下方式列出其数据引用：
+
+"这是一个由多个数据引用支持的示例句子 [Data: <dataset name> (record ids); <dataset name> (record ids)]。"
+
+在单个引用中不要列出超过5个记录ID。相反，列出最相关的前5个记录ID，并添加"+more"以表示还有更多。
+
+例如：
+"X是公司Y的所有者，且受到多项不当行为指控 [Data: Reports (1), Entities (5, 7); Relationships (23); Claims (7, 2, 34, 64, 46, +more)]。"
+
+其中1、5、7、23、2、34、46和64代表相关数据记录的id（不是索引）。
+
+不要包含没有提供支持证据的信息。
+
+# 示例输入
+-----------
+文本：
+
+实体
+
+id,entity,description
+5,VERDANT OASIS PLAZA,Verdant Oasis Plaza是Unity March的举办地点
+6,HARMONY ASSEMBLY,Harmony Assembly是一个在Verdant Oasis Plaza举行游行的组织
+
+关系
+
+id,source,target,description
+37,VERDANT OASIS PLAZA,UNITY MARCH,Verdant Oasis Plaza是Unity March的举办地点
+38,VERDANT OASIS PLAZA,HARMONY ASSEMBLY,Harmony Assembly在Verdant Oasis Plaza举行游行
+39,VERDANT OASIS PLAZA,UNITY MARCH,Unity March在Verdant Oasis Plaza举行
+40,VERDANT OASIS PLAZA,TRIBUNE SPOTLIGHT,Tribune Spotlight报道了在Verdant Oasis Plaza举行的Unity游行
+41,VERDANT OASIS PLAZA,BAILEY ASADI,Bailey Asadi在Verdant Oasis Plaza发表关于游行的讲话
+43,HARMONY ASSEMBLY,UNITY MARCH,Harmony Assembly组织了Unity March
+
+输出：
+{
+    "title": "Verdant Oasis Plaza和Unity March",
+    "summary": "该社区围绕Verdant Oasis Plaza展开，这里是Unity March的举办地点。广场与Harmony Assembly、Unity March和Tribune Spotlight有联系，这些都与游行活动有关。",
+    "rating": 5.0,
+    "rating_explanation": "由于Unity March期间可能出现的动荡或冲突，影响严重性评级为中等。",
+    "findings": [
+        {
+            "summary": "Verdant Oasis Plaza作为中心位置",
+            "explanation": "Verdant Oasis Plaza是该社区的中心实体，作为Unity March的举办地点。这个广场是所有其他实体之间的共同联系，表明其在社区中的重要性。广场与游行的关联可能会导致公共秩序混乱或冲突等问题，这取决于游行的性质和它引发的反应。[Data: Entities (5), Relationships (37, 38, 39, 40, 41,+more)]"
+        },
+        {
+            "summary": "Harmony Assembly在社区中的角色",
+            "explanation": "Harmony Assembly是该社区的另一个关键实体，是Verdant Oasis Plaza游行的组织者。Harmony Assembly及其游行的性质可能是潜在威胁的来源，这取决于他们的目标和引发的反应。Harmony Assembly与广场之间的关系对于理解这个社区的动态至关重要。[Data: Entities(6), Relationships (38, 43)]"
+        },
+        {
+            "summary": "Unity March作为重要事件",
+            "explanation": "Unity March是在Verdant Oasis Plaza举行的重要事件。这一事件是社区动态的关键因素，可能是潜在威胁的来源，取决于游行的性质和它引发的反应。游行与广场之间的关系对于理解这个社区的动态至关重要。[Data: Relationships (39)]"
+        },
+        {
+            "summary": "Tribune Spotlight的角色",
+            "explanation": "Tribune Spotlight报道了在Verdant Oasis Plaza举行的Unity March。这表明该事件已经引起媒体关注，可能会放大其对社区的影响。Tribune Spotlight的角色可能在塑造公众对事件和相关实体的看法方面具有重要意义。[Data: Relationships (40)]"
+        }
+    ]
+}
+
+# 真实数据
+
+使用以下文本作为您的答案。不要在您的答案中编造任何内容。
+
+文本：
+{input_text}
+输出： 

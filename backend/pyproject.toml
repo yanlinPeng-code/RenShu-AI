@@ -1,0 +1,37 @@
+
+[tool.uv.workspace]
+members = [
+    ".",
+]
+
+[tool.uv.sources]
+smarttcm-agent = { workspace = true }
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+[project]
+name = "smarttcm-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "bcrypt>=5.0.0",
+    "dashscope>=1.24.7",
+    "fastapi>=0.119.0",
+    "jwt>=1.4.0",
+    "langchain>=0.3.27",
+    "langchain-community>=0.3.31",
+    "langchain-deepseek>=0.1.4",
+    "langchain-ollama>=0.3.10",
+    "langchain-postgres>=0.0.16",
+    "langgraph>=0.6.10",
+    "sqlmodel>=0.0.27",
+    "structlog>=25.4.0",
+    "uvicorn>=0.37.0",
+]
+
+[dependency-groups]
+dev = [
+    "smarttcm-agent",
+]

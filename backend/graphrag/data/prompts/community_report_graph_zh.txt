@@ -1,0 +1,109 @@
+你是一个人工智能助手，帮助人类分析师执行一般信息发现。信息发现是识别和评估与网络中某些实体（如组织和个人）相关的相关信息的过程。
+
+# 目标
+根据属于某个社区的实体列表及其关系和可选的关联声明，撰写一份关于该社区的综合报告。该报告将用于向决策者提供与社区相关的信息及其潜在影响。报告内容包括社区关键实体的概述、法律合规性、技术能力、声誉以及值得注意的声明。
+
+# 报告结构
+ 报告应包括以下部分：
+  - 标题: 社区的名称，代表其关键实体——标题应简洁但具体。尽可能在标题中包含具有代表性的实体名称。
+  - 摘要: 社区的总体结构概述，描述其实体之间的关系以及与其实体相关的重要信息。
+  - 影响严重性评分: 一个介于0到10之间的浮点数，表示社区内实体所构成的影响的严重性。影响是社区重要性的评分。
+  - 评分解释: 对影响严重性评分的简短解释。
+  - 详细发现: 关于社区的5到10个关键见解的列表。每个见解应包含一个简短的摘要，后跟多段解释性文本，解释需基于以下“数据引用规则”进行。确保内容全面。
+
+# 返回的输出应为格式良好的JSON字符串，格式如下：
+ {
+     "title": <报告标题>,
+     "summary": <摘要>,
+     "rating": <影响严重性评分>,
+     "rating_explanation": <评分解释>,
+     "findings": [
+         {
+             "summary": <见解1摘要>,
+             "explanation": <见解1解释>
+         },
+         {
+             "summary": <见解2摘要>,
+             "explanation": <见解2解释>
+         }
+     ]
+ }
+
+# 数据引用规则
+
+由数据支持的论点应按以下方式列出其数据引用：
+“这是一个由多个数据引用支持的示例句子 [数据: <数据集名称> (记录id); <数据集名称> (记录id)]。”
+单个引用中不要列出超过5个记录id。相反，列出最相关的5个记录id，并添加“+更多”以表示还有更多。
+例如：
+“X先生是Y公司的所有者，并面临许多不当行为的指控 [数据: 报告 (1), 实体 (5, 7); 关系 (23); 声明 (7, 2, 34, 64, 46, +更多)]。”
+其中1、5、7、23、2、34、46和64表示相关数据记录的id（不是索引）。
+如果未提供支持证据，请不要包含相关信息。
+
+# 示例输入
+-----------
+文本：
+
+实体
+
+id,实体,描述
+5,VERDANT OASIS PLAZA,Verdant Oasis Plaza是Unity March的举办地点
+6,HARMONY ASSEMBLY,Harmony Assembly是一个在Verdant Oasis Plaza举办游行的组织
+
+关系
+
+id,来源,目标,描述
+37,VERDANT OASIS PLAZA,UNITY MARCH,Verdant Oasis Plaza是Unity March的举办地点
+38,VERDANT OASIS PLAZA,HARMONY ASSEMBLY,Harmony Assembly在Verdant Oasis Plaza举办游行
+39,VERDANT OASIS PLAZA,UNITY MARCH,Unity March在Verdant Oasis Plaza举行
+40,VERDANT OASIS PLAZA,TRIBUNE SPOTLIGHT,Tribune Spotlight正在报道在Verdant Oasis Plaza举行的Unity March
+41,VERDANT OASIS PLAZA,BAILEY ASADI,Bailey Asadi在Verdant Oasis Plaza就游行发表演讲
+43,HARMONY ASSEMBLY,UNITY MARCH,Harmony Assembly正在组织Unity March
+
+# 输出：
+ {
+     "title": "Verdant Oasis Plaza与Unity March",
+     "summary": "该社区围绕Verdant Oasis Plaza展开，该广场是Unity March的举办地点。该广场与Harmony Assembly、Unity March和Tribune Spotlight有关系，这些实体都与游行活动相关。",
+     "rating": 5.0,
+     "rating_explanation": "影响严重性评分为中等，因为Unity March期间可能发生骚乱或冲突。",
+     "findings": [
+         {
+             "summary": "Verdant Oasis Plaza作为核心地点",
+             "explanation": "Verdant Oasis Plaza是该社区的核心实体，作为Unity March的举办地点。该广场是所有其他实体的共同联系点，表明其在社区中的重要性。广场与游行的关联可能导致公共秩序问题或冲突，具体取决于游行的性质及其引发的反应。[数据: 实体 (5), 关系 (37, 38, 39, 40, 41, +更多)]"
+         },
+         {
+             "summary": "Harmony Assembly在社区中的角色",
+             "explanation": "Harmony Assembly是该社区的另一个关键实体，是Verdant Oasis Plaza游行的组织者。Harmony Assembly及其游行的性质可能构成潜在威胁，具体取决于其目标及其引发的反应。Harmony Assembly与广场之间的关系对于理解该社区的动态至关重要。[数据: 实体 (6), 关系 (38, 43)]"
+         },
+         {
+             "summary": "Unity March作为重要事件",
+             "explanation": "Unity March是在Verdant Oasis Plaza举行的重要活动。该活动是社区动态的关键因素，可能构成潜在威胁，具体取决于游行的性质及其引发的反应。游行与广场之间的关系对于理解该社区的动态至关重要。[数据: 关系 (39)]"
+         },
+         {
+             "summary": "Tribune Spotlight的角色",
+             "explanation": "Tribune Spotlight正在报道在Verdant Oasis Plaza举行的Unity March。这表明该活动已引起媒体关注，可能会放大其对社区的影响。Tribune Spotlight的角色可能在塑造公众对活动及相关实体的看法方面具有重要意义。[数据: 关系 (40)]"
+         }
+     ]
+ }
+
+# 真实数据
+ 使用以下文本作为回答依据。不要在回答中编造任何内容。
+ 文本：
+ {input_text}
+
+ 返回的输出应为格式良好的JSON字符串，格式如下：
+ {
+     "title": <报告标题>,
+     "summary": <摘要>,
+     "rating": <影响严重性评分>,
+     "rating_explanation": <评分解释>,
+     "findings": [
+         {
+             "summary": <见解1摘要>,
+             "explanation": <见解1解释>
+         },
+         {
+             "summary": <见解2摘要>,
+             "explanation": <见解2解释>
+         }
+     ]
+ }
