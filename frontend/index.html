@@ -7,33 +7,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700&family=Inter:wght@300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
               serif: ['"Noto Serif SC"', 'serif'],
               sans: ['"Inter"', 'sans-serif'],
+              calligraphy: ['"Ma Shan Zheng"', 'cursive'],
             },
             colors: {
               tcm: {
-                cream: '#f4f1ea',
+                cream: '#fcfbf7',
                 darkGreen: '#1a3c34',
                 lightGreen: '#4d8c7c',
+                freshGreen: '#e3f2ed',
                 gold: '#d4af37',
                 accent: '#c95e4d',
-                charcoal: '#2c2c2c'
+                charcoal: '#2c2c2c',
+                darkBg: '#0f172a',
+                darkSurface: '#1e293b'
               }
             },
             animation: {
               'fade-in-up': 'fadeInUp 1s ease-out forwards',
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite',
+              'ink-spread': 'inkSpread 1.5s ease-out forwards',
             },
             keyframes: {
               fadeInUp: {
                 '0%': { opacity: '0', transform: 'translateY(20px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              inkSpread: {
+                 '0%': { transform: 'scale(0.8)', opacity: '0' },
+                 '100%': { transform: 'scale(1)', opacity: '1' }
               }
             }
           }
@@ -46,46 +61,85 @@
         margin: 0;
         overflow: hidden;
       }
+
+      /* Rice Paper Texture Effect - Adaptive */
+      .bg-rice-paper {
+        background-color: #fcfbf7;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+        transition: background-color 0.5s ease, color 0.5s ease;
+      }
+
+      html.dark .bg-rice-paper {
+        background-color: #0f172a !important;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E") !important;
+      }
+
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: transparent; 
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(148, 163, 184, 0.5); 
+        background: rgba(77, 140, 124, 0.3);
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: rgba(148, 163, 184, 0.8); 
+        background: rgba(77, 140, 124, 0.6);
       }
-      
+
       .font-serif-sc {
         font-family: 'Noto Serif SC', serif;
       }
-      
+
+      .font-calligraphy {
+        font-family: 'Ma Shan Zheng', cursive;
+      }
+
       /* Glassmorphism Utilities */
       .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
       }
-      
+
       .glass-panel-dark {
-        background: rgba(26, 60, 52, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(26, 60, 52, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
       }
 
       /* Text Gradients */
       .text-gradient-gold {
-        background: linear-gradient(to right, #d4af37, #f3e5ab);
+        background: linear-gradient(to right, #d4af37, #f3e5ab, #d4af37);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        background-size: 200% auto;
+        animation: shine 4s linear infinite;
+      }
+
+      .text-gradient-green {
+        background: linear-gradient(135deg, #1a3c34 0%, #4d8c7c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      html.dark .text-gradient-green {
+        background: linear-gradient(135deg, #4d8c7c 0%, #e3f2ed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      @keyframes shine {
+        to {
+          background-position: 200% center;
+        }
       }
     </style>
   <script type="importmap">
@@ -101,9 +155,9 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="src/styles/index.css">
 </head>
-  <body>
+  <body class="bg-rice-paper transition-colors duration-500">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
   </body>

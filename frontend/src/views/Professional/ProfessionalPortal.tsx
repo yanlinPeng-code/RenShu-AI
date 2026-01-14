@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { User, ChatMessage, AVAILABLE_MODELS, AIModelConfig } from '../../types/types';
 import { Icons } from '../../components/common/Icons';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import { createProfessionalChat, analyzeMedicalReport } from '../../services/geminiService';
 import { Chat } from "@google/genai";
 
@@ -9,57 +10,186 @@ interface ProPortalProps {
   onLogout: () => void;
 }
 
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  lastModified: Date;
+}
+
 // Mock Data for Patients (Used in Patients Tab)
 const RECENT_PATIENTS = [
-  { id: 1, name: '张伟', age: 45, gender: '男', condition: '高血压 Stage II', date: '2023-10-24', status: '稳定', avatarColor: 'bg-tcm-lightGreen ' },
-  { id: 2, name: '李秀英', age: 62, gender: '女', condition: '2型糖尿病', date: '2023-10-25', status: '监测中', avatarColor: 'bg-tcm-gold' },
-  { id: 3, name: '王强', age: 28, gender: '男', condition: '急性上呼吸道感染', date: '2023-10-26', status: '恢复中', avatarColor: 'bg-blue-500' },
-  { id: 4, name: '陈慧', age: 35, gender: '女', condition: '偏头痛', date: '2023-10-27', status: '稳定', avatarColor: 'bg-purple-500' },
-  { id: 5, name: '刘洋', age: 50, gender: '男', condition: '胃炎', date: '2023-10-28', status: '危急', avatarColor: 'bg-red-500' },
-  { id: 6, name: '赵敏', age: 41, gender: '女', condition: '失眠', date: '2023-10-29', status: '稳定', avatarColor: 'bg-indigo-500' },
-  { id: 7, name: '孙雷', age: 55, gender: '男', condition: '关节炎', date: '2023-10-30', status: '监测中', avatarColor: 'bg-orange-500' },
+  { id: 1, name: 'Zhang Wei', age: 45, gender: 'Male', condition: 'Hypertension Stage II', date: '2023-10-24', status: 'Stable', avatarColor: 'bg-tcm-lightGreen' },
+  { id: 2, name: 'Li Xiuying', age: 62, gender: 'Female', condition: 'Type 2 Diabetes', date: '2023-10-25', status: 'Monitoring', avatarColor: 'bg-tcm-gold' },
+  { id: 3, name: 'Wang Qiang', age: 28, gender: 'Male', condition: 'Acute URI', date: '2023-10-26', status: 'Recovering', avatarColor: 'bg-blue-500' },
+  { id: 4, name: 'Chen Hui', age: 35, gender: 'Female', condition: 'Migraine', date: '2023-10-27', status: 'Stable', avatarColor: 'bg-purple-500' },
+  { id: 5, name: 'Liu Yang', age: 50, gender: 'Male', condition: 'Gastritis', date: '2023-10-28', status: 'Critical', avatarColor: 'bg-red-500' },
+  { id: 6, name: 'Zhao Min', age: 41, gender: 'Female', condition: 'Insomnia', date: '2023-10-29', status: 'Stable', avatarColor: 'bg-indigo-500' },
+  { id: 7, name: 'Sun Lei', age: 55, gender: 'Male', condition: 'Arthritis', date: '2023-10-30', status: 'Monitoring', avatarColor: 'bg-orange-500' },
 ];
 
-const MOCK_HISTORY = [
-  { id: '1', title: '高血压病例分析', date: '今天' },
-  { id: '2', title: '2型糖尿病复习', date: '昨天' },
-  { id: '3', title: '儿科发热协议', date: '10月24日' },
-  { id: '4', title: '药物相互作用检查', date: '10月22日' },
-];
+// Helper to group sessions by date
+const groupSessionsByDate = (sessions: ChatSession[]) => {
+  const groups: { [key: string]: ChatSession[] } = {
+    'Today': [],
+    'Yesterday': [],
+    'Previous 7 Days': [],
+    'Older': []
+  };
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  sessions.forEach(session => {
+    const date = new Date(session.lastModified);
+    const sessionDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (sessionDate.getTime() === today.getTime()) {
+      groups['Today'].push(session);
+    } else if (sessionDate.getTime() === yesterday.getTime()) {
+      groups['Yesterday'].push(session);
+    } else if (sessionDate > lastWeek) {
+      groups['Previous 7 Days'].push(session);
+    } else {
+      groups['Older'].push(session);
+    }
+  });
+
+  return groups;
+};
 
 const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('ai-diagnosis');
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModelConfig>(AVAILABLE_MODELS[1]); // Default to Pro
-  
-  // Chat State
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // Chat Sessions State
+  const [sessions, setSessions] = useState<ChatSession[]>([
+    {
+      id: 'init-1',
+      title: 'General Consultation',
+      messages: [{
+        id: 'init',
+        role: 'model',
+        text: `Hello, Dr. ${user.name.split(' ').pop()}. The Clinical Decision Support System is ready.`,
+        timestamp: new Date()
+      }],
+      lastModified: new Date()
+    },
+    {
+      id: 'hist-1',
+      title: 'Hypertension Case Analysis',
+      messages: [],
+      lastModified: new Date(Date.now() - 86400000) // Yesterday
+    },
+    {
+      id: 'hist-2',
+      title: 'Pediatric Fever Protocol',
+      messages: [],
+      lastModified: new Date(Date.now() - 172800000) // 2 days ago
+    }
+  ]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('init-1');
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  // Derived Active Session
+  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
+  const [showHistory, setShowHistory] = useState(false); // Default collapsed as requested
+  const [showModelSelector, setShowModelSelector] = useState(false);
 
   // New Toggles
   const [enableDeepThink, setEnableDeepThink] = useState(false);
   const [enableWebSearch, setEnableWebSearch] = useState(false);
-  
+
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme_professional');
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- Effects ---
+
+  // Use layout effect to prevent flash of wrong theme when switching portals
+  useLayoutEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme_professional', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme_professional', 'light');
+    }
+  }, [isDarkMode]);
+
   useEffect(() => {
-    // Initialize Professional Chat with selected model
+    // Initialize Professional Chat with selected model whenever session or model changes
     chatRef.current = createProfessionalChat(selectedModel.id);
-    setMessages([{
-      id: 'init',
-      role: 'model',
-      text: `您好，${user.name}医生。临床决策支持系统已准备就绪，使用的是 ${selectedModel.name}。请提供病例详情或提出临床问题。`,
-      timestamp: new Date()
-    }]);
-  }, [user.name, selectedModel]);
+  }, [activeSessionId, selectedModel]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [activeSession.messages]);
+
+  // --- Handlers: Session Management ---
+
+  const handleNewChat = () => {
+    const newSession: ChatSession = {
+      id: Date.now().toString(),
+      title: 'New Clinical Case',
+      messages: [{
+        id: Date.now().toString(),
+        role: 'model',
+        text: `Hello, Dr. ${user.name.split(' ').pop()}. New session started using ${selectedModel.name}.`,
+        timestamp: new Date()
+      }],
+      lastModified: new Date()
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newSession.id);
+  };
+
+  const handleDeleteSession = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newSessions = sessions.filter(s => s.id !== id);
+    setSessions(newSessions);
+    if (activeSessionId === id && newSessions.length > 0) {
+      setActiveSessionId(newSessions[0].id);
+    } else if (newSessions.length === 0) {
+      handleNewChat();
+    }
+  };
+
+  const startRenameSession = (e: React.MouseEvent, session: ChatSession) => {
+    e.stopPropagation();
+    setEditingSessionId(session.id);
+    setEditTitle(session.title);
+  };
+
+  const saveRenameSession = () => {
+    if (editingSessionId) {
+      setSessions(prev => prev.map(s => s.id === editingSessionId ? { ...s, title: editTitle } : s));
+      setEditingSessionId(null);
+    }
+  };
+
+  const updateSessionMessages = (sessionId: string, newMessages: ChatMessage[]) => {
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: newMessages, lastModified: new Date() } : s));
+  };
+
+  const groupedSessions = groupSessionsByDate(sessions);
+
+  // --- Handlers: Chat ---
 
   const handleSendMessage = async (text: string = inputValue) => {
     if (!text.trim() || !chatRef.current) return;
@@ -71,7 +201,15 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    const updatedMessages = [...activeSession.messages, userMsg];
+    updateSessionMessages(activeSessionId, updatedMessages);
+
+    // Auto-rename if it's the first user message
+    if (activeSession.messages.length <= 1 && activeSession.title === 'New Clinical Case') {
+       const newTitle = text.slice(0, 25) + (text.length > 25 ? '...' : '');
+       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, title: newTitle } : s));
+    }
+
     setInputValue('');
     setIsLoading(true);
 
@@ -80,7 +218,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
       if (enableDeepThink) config.thinkingConfig = { thinkingBudget: 1024 };
       if (enableWebSearch) config.tools = [{ googleSearch: {} }];
 
-      const result = await chatRef.current.sendMessage({ 
+      const result = await chatRef.current.sendMessage({
         message: text,
         config: Object.keys(config).length > 0 ? config : undefined
       });
@@ -91,9 +229,9 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
         text: result.text || "No response generated.",
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, modelMsg]);
+      updateSessionMessages(activeSessionId, [...updatedMessages, modelMsg]);
     } catch (e) {
-      setMessages(prev => [...prev, {
+      updateSessionMessages(activeSessionId, [...updatedMessages, {
         id: Date.now().toString(),
         role: 'model',
         text: "System Error: Unable to connect to diagnostic engine.",
@@ -118,7 +256,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US'; 
+      recognition.lang = 'en-US';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
@@ -150,41 +288,41 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   // --- Sub-Views for Navigation ---
 
   const PatientsView = () => (
-    <div className="w-full h-full p-8 bg-gray-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
+    <div className="w-full h-full p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 transition-colors">
       <div className="flex justify-between items-center mb-8">
         <div>
-           <h2 className="text-2xl font-bold text-tcm-darkGreen font-serif-sc">患者管理</h2>
-           <p className="text-gray-500 text-sm">活跃病例和患者历史</p>
+           <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">Patient Management</h2>
+           <p className="text-gray-500 dark:text-gray-400 text-sm">Active cases and patient history</p>
         </div>
-        <button className="bg-tcm-darkGreen text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-900 transition-colors">
-          <Icons.ShieldPlus size={18} /> 添加新患者
+        <button className="bg-tcm-darkGreen dark:bg-tcm-lightGreen text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-900 transition-colors">
+          <Icons.ShieldPlus size={18} /> Add New Patient
         </button>
       </div>
-      
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
-              <th className="p-4">患者</th>
-              <th className="p-4">年龄/性别</th>
-              <th className="p-4">诊断</th>
-              <th className="p-4">最后就诊</th>
-              <th className="p-4">状态</th>
-              <th className="p-4">操作</th>
+            <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="p-4">Patient</th>
+              <th className="p-4">Age/Gender</th>
+              <th className="p-4">Diagnosis</th>
+              <th className="p-4">Last Visit</th>
+              <th className="p-4">Status</th>
+              <th className="p-4">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {RECENT_PATIENTS.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => { setSelectedPatient(p.id); setActiveTab('ai-diagnosis'); }}>
+              <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group cursor-pointer" onClick={() => { setSelectedPatient(p.id); setActiveTab('ai-diagnosis'); }}>
                 <td className="p-4 flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full ${p.avatarColor} text-white flex items-center justify-center font-bold text-xs`}>{p.name.charAt(0)}</div>
-                  <span className="font-bold text-gray-700">{p.name}</span>
+                  <span className="font-bold text-gray-700 dark:text-gray-200">{p.name}</span>
                 </td>
-                <td className="p-4 text-sm text-gray-600">{p.age} / {p.gender}</td>
-                <td className="p-4 text-sm text-tcm-darkGreen font-medium">{p.condition}</td>
-                <td className="p-4 text-sm text-gray-500">{p.date}</td>
+                <td className="p-4 text-sm text-gray-600 dark:text-gray-400">{p.age} / {p.gender}</td>
+                <td className="p-4 text-sm text-tcm-darkGreen dark:text-tcm-lightGreen font-medium">{p.condition}</td>
+                <td className="p-4 text-sm text-gray-500 dark:text-gray-400">{p.date}</td>
                 <td className="p-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'Critical' ? 'bg-red-100 text-red-600' : p.status === 'Stable' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'Critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : p.status === 'Stable' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'}`}>
                     {p.status}
                   </span>
                 </td>
@@ -227,58 +365,58 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
       setAnalysisResult(null);
       // Clean base64 string if present
       const cleanBase64 = base64Data ? base64Data.split(',')[1] : undefined;
-      
+
       const result = await analyzeMedicalReport(reportText, cleanBase64, mimeType || undefined);
       setAnalysisResult(result);
       setIsAnalyzing(false);
     };
 
     return (
-      <div className="w-full h-full p-6 bg-gray-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 flex flex-col md:flex-row gap-6">
-        
+      <div className="w-full h-full p-6 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 flex flex-col md:flex-row gap-6 transition-colors">
+
         {/* Left Column: Input */}
         <div className="w-full md:w-1/3 flex flex-col gap-4">
-          <h2 className="text-2xl font-bold text-tcm-darkGreen font-serif-sc mb-2">报告上传</h2>
-          
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-2">Report Upload</h2>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
              <div className="mb-4">
-               <label className="block text-sm font-bold text-gray-700 mb-2">扫描或图像</label>
-               <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
+               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Scan or Image</label>
+               <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                  <input type="file" onChange={handleReportUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" />
                  {previewUrl ? (
                    <img src={previewUrl} alt="Preview" className="max-h-48 mx-auto rounded shadow-sm" />
                  ) : (
                    <div className="text-gray-400 flex flex-col items-center">
                      <Icons.UploadCloud size={32} className="mb-2"/>
-                     <span className="text-sm">点击上传图像</span>
+                     <span className="text-sm">Click to upload image</span>
                    </div>
                  )}
                </div>
              </div>
 
              <div className="mb-4">
-               <label className="block text-sm font-bold text-gray-700 mb-2">临床记录（可选）</label>
-               <textarea 
+               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Clinical Notes (Optional)</label>
+               <textarea
                  value={reportText}
                  onChange={(e) => setReportText(e.target.value)}
-                 className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-tcm-lightGreen focus:border-transparent min-h-[100px]"
-                 placeholder="在此输入任何附加信息或复制粘贴文本报告..."
+                 className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-tcm-lightGreen focus:border-transparent min-h-[100px]"
+                 placeholder="Enter any additional context or copy-paste text report here..."
                />
              </div>
 
-             <button 
+             <button
                onClick={runAnalysis}
                disabled={isAnalyzing || (!reportText && !base64Data)}
-               className="w-full bg-tcm-darkGreen text-white py-3 rounded-lg font-bold shadow-md hover:bg-green-900 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+               className="w-full bg-tcm-darkGreen dark:bg-tcm-lightGreen text-white py-3 rounded-lg font-bold shadow-md hover:bg-green-900 dark:hover:bg-green-700 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
              >
                {isAnalyzing ? (
                  <>
                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                   分析中...
+                   Analyzing...
                  </>
                ) : (
                  <>
-                   <Icons.Zap size={18} /> 运行AI分析
+                   <Icons.Zap size={18} /> Run AI Analysis
                  </>
                )}
              </button>
@@ -287,11 +425,11 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
 
         {/* Right Column: Results */}
         <div className="w-full md:w-2/3 flex flex-col">
-          <h2 className="text-2xl font-bold text-tcm-darkGreen font-serif-sc mb-6">解读结果</h2>
-          
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8 overflow-y-auto">
+          <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-6">Interpretation Result</h2>
+
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 overflow-y-auto transition-colors">
              {analysisResult ? (
-               <div className="prose prose-sm max-w-none prose-headings:text-tcm-darkGreen prose-p:text-gray-700 prose-strong:text-tcm-darkGreen">
+               <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-tcm-darkGreen dark:prose-headings:text-tcm-lightGreen prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-tcm-darkGreen dark:prose-strong:text-tcm-gold">
                  {analysisResult.split('\n').map((line, i) => {
                    if (line.startsWith('**') || line.startsWith('#')) return <h3 key={i} className="text-lg font-bold mt-4 mb-2">{line.replace(/[#*]/g, '')}</h3>;
                    if (line.trim().startsWith('-')) return <li key={i} className="ml-4">{line.substring(1)}</li>;
@@ -299,10 +437,10 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
                  })}
                </div>
              ) : (
-               <div className="h-full flex flex-col items-center justify-center text-gray-300">
+               <div className="h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-600">
                  <Icons.FileText size={64} className="mb-4 opacity-50"/>
-                 <p className="text-lg font-medium">尚未生成分析。</p>
-                 <p className="text-sm">上传报告以开始。</p>
+                 <p className="text-lg font-medium">No analysis generated yet.</p>
+                 <p className="text-sm">Upload a report to begin.</p>
                </div>
              )}
           </div>
@@ -312,22 +450,22 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   };
 
   const RecordsView = () => (
-    <div className="w-full h-full p-8 bg-gray-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
-      <h2 className="text-2xl font-bold text-tcm-darkGreen font-serif-sc mb-6">电子病历</h2>
+    <div className="w-full h-full p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 transition-colors">
+      <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-6">Electronic Medical Records</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1,2,3,4,5,6].map(i => (
-          <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group hover:border-tcm-gold/50">
+          <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer group hover:border-tcm-gold/50">
             <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-tcm-gold group-hover:text-white transition-colors">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg group-hover:bg-tcm-gold group-hover:text-white transition-colors">
                 <Icons.FileText size={24} />
               </div>
-              <button className="text-gray-300 hover:text-gray-500"><Icons.Menu size={16}/></button>
+              <button className="text-gray-300 hover:text-gray-500 dark:hover:text-gray-200"><Icons.Menu size={16}/></button>
             </div>
-            <h3 className="font-bold text-gray-800 mb-1">病例记录 #{202300 + i}</h3>
-            <p className="text-xs text-gray-500 mb-4">2小时前更新</p>
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-400 group-hover:text-tcm-darkGreen">
-              <span className="bg-gray-100 px-2 py-1 rounded">心脏病学</span>
-              <span className="bg-gray-100 px-2 py-1 rounded">住院患者</span>
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-1">Case Record #{202300 + i}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Updated 2 hours ago</p>
+            <div className="flex items-center gap-2 text-xs font-medium text-gray-400 group-hover:text-tcm-darkGreen dark:group-hover:text-tcm-lightGreen">
+              <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Cardiology</span>
+              <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Inpatient</span>
             </div>
           </div>
         ))}
@@ -336,30 +474,30 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   );
 
   const ResearchView = () => (
-    <div className="w-full h-full p-8 bg-gray-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
+    <div className="w-full h-full p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 transition-colors">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold text-tcm-darkGreen font-serif-sc mb-2">医学知识图谱</h2>
-        <p className="text-gray-500 mb-8">使用AI综合搜索全球医学数据库。</p>
-        
+        <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-2">Medical Knowledge Graph</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-8">Search global medical databases with AI synthesis.</p>
+
         <div className="relative mb-10">
-          <input type="text" placeholder="搜索症状、药物相互作用或最新论文..." className="w-full p-4 pl-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-tcm-lightGreen shadow-sm" />
+          <input type="text" placeholder="Search for symptoms, drug interactions, or recent papers..." className="w-full p-4 pl-12 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-tcm-lightGreen shadow-sm" />
           <Icons.Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-tcm-darkGreen text-white px-6 py-2 rounded-full hover:bg-green-900 transition-colors">搜索</button>
+          <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-tcm-darkGreen dark:bg-tcm-lightGreen text-white px-6 py-2 rounded-full hover:bg-green-900 transition-colors">Search</button>
         </div>
 
         <div className="space-y-6">
-          <h3 className="font-bold text-gray-800 border-b pb-2">最新相关论文</h3>
+          <h3 className="font-bold text-gray-800 dark:text-gray-200 border-b dark:border-gray-700 pb-2">Latest relevant papers</h3>
           {[1, 2, 3].map(i => (
-             <div key={i} className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded mb-2 inline-block">新英格兰医学杂志</span>
-               <h4 className="font-bold text-lg text-gray-900 mb-2">综合医学在慢性高血压管理中的疗效</h4>
-               <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                 一项随机对照试验，展示了将标准方案与...结合时患者结果的显著改善
+             <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+               <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded mb-2 inline-block">NEJM</span>
+               <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2">Efficacy of Integrative Medicine in Chronic Hypertension Management</h4>
+               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">
+                 A randomized control trial demonstrating significant improvement in patient outcomes when combining standard protocols with...
                </p>
                <div className="flex gap-4 text-xs text-gray-400">
-                 <span>2023年10月24日</span>
-                 <span>被引用45次</span>
-                 <button className="text-tcm-lightGreen hover:underline ml-auto font-bold">阅读摘要</button>
+                 <span>Oct 24, 2023</span>
+                 <span>Cited by 45</span>
+                 <button className="text-tcm-lightGreen hover:underline ml-auto font-bold">Read Summary</button>
                </div>
              </div>
           ))}
@@ -367,46 +505,51 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
       </div>
     </div>
   );
-  
+
   const SettingsView = () => (
-    <div className="w-full h-full p-8 bg-gray-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
+    <div className="w-full h-full p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 transition-colors">
        <div className="max-w-2xl">
-         <h2 className="text-2xl font-bold text-tcm-darkGreen font-serif-sc mb-8">系统设置</h2>
-         
-         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-           <div className="p-4 border-b border-gray-100 bg-gray-50 font-bold text-sm text-gray-500 uppercase">通用</div>
+         <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-8">System Settings</h2>
+
+         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 transition-colors">
+           <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 font-bold text-sm text-gray-500 dark:text-gray-400 uppercase">General</div>
            <div className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-gray-800">深色模式</div>
-                  <div className="text-xs text-gray-500">减少夜班时的眼部疲劳</div>
+                  <div className="font-bold text-gray-800 dark:text-gray-200">Dark Mode</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Reduce eye strain during night shifts</div>
                 </div>
-                <div className="w-12 h-6 bg-gray-200 rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow-sm"></div></div>
+                <button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${isDarkMode ? 'bg-tcm-lightGreen' : 'bg-gray-200'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-transform duration-300 ${isDarkMode ? 'left-7' : 'left-1'}`}></div>
+                </button>
              </div>
              <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-gray-800">紧凑视图</div>
-                  <div className="text-xs text-gray-500">在表格中显示更多数据密度</div>
+                  <div className="font-bold text-gray-800 dark:text-gray-200">Compact View</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Show more data density in tables</div>
                 </div>
                 <div className="w-12 h-6 bg-tcm-lightGreen rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 shadow-sm"></div></div>
              </div>
            </div>
          </div>
 
-         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-           <div className="p-4 border-b border-gray-100 bg-gray-50 font-bold text-sm text-gray-500 uppercase">AI配置</div>
+         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+           <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 font-bold text-sm text-gray-500 dark:text-gray-400 uppercase">AI Configuration</div>
            <div className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-gray-800">模型温度</div>
-                  <div className="text-xs text-gray-500">调整创造力与精确度 (0.0 - 1.0)</div>
+                  <div className="font-bold text-gray-800 dark:text-gray-200">Model Temperature</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Adjust creativity vs precision (0.0 - 1.0)</div>
                 </div>
                 <input type="range" className="w-32" />
              </div>
              <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-gray-800">自动建议治疗方案</div>
-                  <div className="text-xs text-gray-500">自动追加中医协议</div>
+                  <div className="font-bold text-gray-800 dark:text-gray-200">Auto-Suggest Treatments</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Automatically append TCM protocols</div>
                 </div>
                 <div className="w-12 h-6 bg-tcm-lightGreen rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 shadow-sm"></div></div>
              </div>
@@ -417,55 +560,52 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   );
 
   return (
-    <div className="w-full h-screen flex bg-gray-50 font-sans overflow-hidden">
-      
+    <div className="w-full h-screen flex bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden transition-colors duration-500">
+
       {/* 1. Navigation Sidebar (Left) */}
-      <aside className="w-64 bg-tcm-darkGreen flex flex-col text-white flex-shrink-0 z-20 shadow-xl transition-all duration-300">
+      <aside className="w-64 bg-tcm-darkGreen dark:bg-black/50 flex flex-col text-white flex-shrink-0 z-20 shadow-xl transition-all duration-300">
         {/* Branding */}
         <div className="h-16 flex items-center px-6 border-b border-white/10 bg-black/10">
-           <div className="w-8 h-8 bg-tcm-gold rounded flex items-center justify-center text-tcm-darkGreen font-bold font-serif-sc mr-3">
-             医
-           </div>
-           <span className="font-serif-sc font-bold text-lg tracking-wider">仁术专业版</span>
+           <BrandLogo size="md" variant="dark" />
         </div>
 
         {/* Navigation Items */}
         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
-          <NavItem 
-            icon={Icons.BrainCircuit} 
-            label="AI诊断" 
-            isActive={activeTab === 'ai-diagnosis'} 
-            onClick={() => setActiveTab('ai-diagnosis')} 
+          <NavItem
+            icon={Icons.BrainCircuit}
+            label="AI Diagnosis"
+            isActive={activeTab === 'ai-diagnosis'}
+            onClick={() => setActiveTab('ai-diagnosis')}
           />
-          <NavItem 
-            icon={Icons.User} 
-            label="患者管理" 
-            isActive={activeTab === 'patients'} 
-            onClick={() => setActiveTab('patients')} 
+          <NavItem
+            icon={Icons.User}
+            label="Patient Mgmt"
+            isActive={activeTab === 'patients'}
+            onClick={() => setActiveTab('patients')}
           />
-          <NavItem 
-             icon={Icons.FileText} 
-             label="报告分析" 
-             isActive={activeTab === 'report-analysis'} 
-             onClick={() => setActiveTab('report-analysis')} 
+          <NavItem
+             icon={Icons.FileText}
+             label="Report Analysis"
+             isActive={activeTab === 'report-analysis'}
+             onClick={() => setActiveTab('report-analysis')}
           />
-          <NavItem 
-            icon={Icons.MessageSquare} 
-            label="电子病历" 
-            isActive={activeTab === 'records'} 
-            onClick={() => setActiveTab('records')} 
+          <NavItem
+            icon={Icons.MessageSquare}
+            label="Electronic Records"
+            isActive={activeTab === 'records'}
+            onClick={() => setActiveTab('records')}
           />
-          <NavItem 
-            icon={Icons.Globe} 
-            label="医学研究" 
-            isActive={activeTab === 'research'} 
-            onClick={() => setActiveTab('research')} 
+          <NavItem
+            icon={Icons.Globe}
+            label="Medical Research"
+            isActive={activeTab === 'research'}
+            onClick={() => setActiveTab('research')}
           />
-          <NavItem 
-            icon={Icons.Settings} 
-            label="系统设置" 
-            isActive={activeTab === 'settings'} 
-            onClick={() => setActiveTab('settings')} 
+          <NavItem
+            icon={Icons.Settings}
+            label="System Settings"
+            isActive={activeTab === 'settings'}
+            onClick={() => setActiveTab('settings')}
           />
         </nav>
 
@@ -475,11 +615,11 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
             <img src={user.avatar} className="w-10 h-10 rounded-full border-2 border-tcm-gold object-cover" alt="Dr" />
             <div className="overflow-hidden">
               <p className="text-sm font-bold text-white truncate">{user.name}</p>
-              <p className="text-xs text-tcm-gold/80 truncate">主治医师</p>
+              <p className="text-xs text-tcm-gold/80 truncate">Attending Physician</p>
             </div>
           </div>
           <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-2 text-xs text-red-300 hover:text-white hover:bg-white/10 rounded transition-colors">
-            <Icons.LogOut size={14} /> 退出登录
+            <Icons.LogOut size={14} /> Sign Out
           </button>
         </div>
       </aside>
@@ -487,174 +627,264 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
       {/* Main Content Area - Conditional Rendering */}
       {activeTab === 'ai-diagnosis' ? (
         <div className="flex-1 flex overflow-hidden relative">
-          
+
           {/* 2. Collapsible History Sidebar */}
-           <div className={`bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${showHistory ? 'w-64 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
-             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">聊天历史</span>
-                <button 
+           <div className={`bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 ease-in-out ${showHistory ? 'w-64 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
+             <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Chat History</span>
+                <button
                   onClick={() => setShowHistory(false)}
-                  className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
                 >
                   <Icons.PanelLeft size={18} />
                 </button>
              </div>
-             
-             <div className="p-3">
-               <button 
-                 onClick={() => { setMessages([]); setInputValue(''); }}
-                 className="w-full flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-tcm-lightGreen hover:text-tcm-lightGreen transition-colors shadow-sm mb-4 whitespace-nowrap"
+
+             <div className="p-3 flex-1 flex flex-col overflow-hidden">
+               <button
+                 onClick={handleNewChat}
+                 className="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:border-tcm-lightGreen hover:text-tcm-lightGreen transition-colors shadow-sm mb-4 whitespace-nowrap shrink-0"
                >
-                 <Icons.MessageSquare size={16} /> 新建聊天
+                 <Icons.MessageSquare size={16} /> New Chat
                </button>
-               
-               <div className="space-y-1 overflow-y-auto custom-scrollbar" style={{maxHeight: 'calc(100vh - 180px)'}}>
-                 <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase mt-2 mb-1">最近</div>
-                 {MOCK_HISTORY.map((item) => (
-                   <button key={item.id} className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-white hover:shadow-sm transition-all truncate group">
-                     <span className="block truncate">{item.title}</span>
-                     <span className="text-[10px] text-gray-400">{item.date}</span>
-                   </button>
+
+               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+                 {Object.entries(groupedSessions).map(([group, groupSessions]) => (
+                   groupSessions.length > 0 && (
+                     <div key={group} className="animate-in fade-in">
+                       <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase mt-2 mb-1">{group}</div>
+                       {groupSessions.map(session => (
+                          <div
+                            key={session.id}
+                            onClick={() => setActiveSessionId(session.id)}
+                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              activeSessionId === session.id 
+                                ? 'bg-tcm-lightGreen/10 dark:bg-tcm-lightGreen/10 text-tcm-darkGreen dark:text-tcm-lightGreen font-medium' 
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              {editingSessionId === session.id ? (
+                                <input
+                                  type="text"
+                                  value={editTitle}
+                                  onChange={(e) => setEditTitle(e.target.value)}
+                                  onBlur={saveRenameSession}
+                                  onKeyDown={(e) => e.key === 'Enter' && saveRenameSession()}
+                                  autoFocus
+                                  className="w-full bg-transparent border-b border-gray-400 focus:outline-none text-sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                <div className="text-sm truncate">
+                                  {session.title}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Hover Actions */}
+                            <div className={`flex items-center ${activeSessionId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                               <button onClick={(e) => startRenameSession(e, session)} className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded">
+                                 <Icons.Edit3 size={12} />
+                               </button>
+                               <button onClick={(e) => handleDeleteSession(e, session.id)} className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded hover:text-red-500 ml-1">
+                                 <Icons.Trash2 size={12} />
+                               </button>
+                            </div>
+                          </div>
+                       ))}
+                     </div>
+                   )
                  ))}
                </div>
              </div>
            </div>
 
           {/* 3. Main Workspace (Right) - Chat Interface */}
-          <main className="flex-1 flex flex-col bg-white min-w-0 relative">
+          <main className="flex-1 flex flex-col bg-white dark:bg-gray-800 min-w-0 relative transition-colors">
             {/* Header */}
-            <header className="h-16 border-b border-gray-100 flex items-center justify-between px-6 bg-white z-10">
+            <header className="h-16 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between px-6 bg-white dark:bg-gray-800 z-10 transition-colors">
               <div className="flex items-center gap-3">
                  {!showHistory && (
-                   <button 
+                   <button
                      onClick={() => setShowHistory(true)}
-                     className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                     title="显示历史"
+                     className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                     title="Show History"
                    >
                      <Icons.PanelLeft size={20} />
                    </button>
                  )}
-                 
-                 <div className="p-2 bg-tcm-darkGreen/5 rounded-lg text-tcm-darkGreen">
+
+                 <div className="p-2 bg-tcm-darkGreen/5 dark:bg-white/10 rounded-lg text-tcm-darkGreen dark:text-tcm-lightGreen">
                    <Icons.BrainCircuit size={20} />
                  </div>
-                 <div>
-                   <h1 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                     AI临床助手 
-                                    
-                     {/* Model Selector Dropdown */}
-                     <div className="relative inline-block ml-1">
-                       <select 
-                          value={selectedModel.id}
-                          onChange={(e) => setSelectedModel(AVAILABLE_MODELS.find(m => m.id === e.target.value) || AVAILABLE_MODELS[1])}
-                          className="appearance-none pl-2 pr-6 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded-full border border-blue-100 font-medium focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
-                       >
-                          {AVAILABLE_MODELS.map(m => (
-                            <option key={m.id} value={m.id}>{m.name}</option>
-                          ))}
-                       </select>
-                       <Icons.ChevronRight size={10} className="absolute right-1.5 top-1/2 transform -translate-y-1/2 rotate-90 text-blue-500 pointer-events-none"/>
+                 <div className="flex flex-col">
+                   <div className="flex items-center gap-2">
+                     <h1 className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                       AI Clinical Assistant
+                     </h1>
+
+                     {/* Custom Model Selector */}
+                     <div className="relative">
+                        <button
+                          onClick={() => setShowModelSelector(!showModelSelector)}
+                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors border ${
+                            showModelSelector 
+                              ? 'bg-tcm-lightGreen/10 border-tcm-lightGreen text-tcm-darkGreen dark:text-tcm-lightGreen' 
+                              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                          }`}
+                        >
+                            <span>{selectedModel.name}</span>
+                            <Icons.ChevronDown size={10} className={`transition-transform duration-300 ${showModelSelector ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Custom Dropdown Menu */}
+                        {showModelSelector && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowModelSelector(false)}></div>
+                            <div className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-left">
+                              <div className="p-1.5 space-y-0.5">
+                                <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Select Model</div>
+                                {AVAILABLE_MODELS.map(model => (
+                                  <button
+                                    key={model.id}
+                                    onClick={() => {
+                                      setSelectedModel(model);
+                                      setShowModelSelector(false);
+                                    }}
+                                    className={`w-full text-left p-2 rounded-lg flex items-start gap-2 transition-colors ${
+                                      selectedModel.id === model.id 
+                                        ? 'bg-tcm-lightGreen/10 border border-tcm-lightGreen/20' 
+                                        : 'hover:bg-gray-50 dark:hover:bg-white/5 border border-transparent'
+                                    }`}
+                                  >
+                                    <div className={`mt-0.5 p-1 rounded-md flex-shrink-0 ${
+                                      selectedModel.id === model.id 
+                                        ? 'bg-tcm-lightGreen text-white' 
+                                        : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                      <Icons.Zap size={12} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className={`text-xs font-bold truncate ${
+                                        selectedModel.id === model.id 
+                                          ? 'text-tcm-darkGreen dark:text-tcm-lightGreen' 
+                                          : 'text-gray-700 dark:text-gray-200'
+                                      }`}>
+                                        {model.name}
+                                      </div>
+                                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0 truncate">
+                                        {model.description}
+                                      </div>
+                                    </div>
+                                    {selectedModel.id === model.id && (
+                                      <Icons.Check size={14} className="text-tcm-lightGreen mt-1" />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
                      </div>
-                   </h1>
-                   <p className="text-xs text-gray-400">上下文: {selectedPatient ? `患者 #${selectedPatient}` : '常规会话'}</p>
+                   </div>
+                   <p className="text-xs text-gray-400 dark:text-gray-500">Context: {selectedPatient ? `Patient #${selectedPatient}` : 'General Session'}</p>
                  </div>
               </div>
-              
+
               {/* Quick Actions (Top Right) */}
               <div className="flex items-center gap-2">
-                <QuickActionButton label="生成病例" onClick={() => handleQuickAction('generate_case')} />
-                <QuickActionButton label="药物检查" onClick={() => handleQuickAction('drug_check')} />
-                <QuickActionButton label="文献检索" onClick={() => handleQuickAction('lit_search')} />
+                <QuickActionButton label="Generate Case" onClick={() => handleQuickAction('generate_case')} />
+                <QuickActionButton label="Drug Check" onClick={() => handleQuickAction('drug_check')} />
+                <QuickActionButton label="Lit Search" onClick={() => handleQuickAction('lit_search')} />
               </div>
             </header>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-6 bg-[#f8f9fa] space-y-6">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                  {msg.role === 'model' && (
-                    <div className="w-8 h-8 rounded-full bg-tcm-darkGreen flex items-center justify-center text-white mr-3 shadow-sm flex-shrink-0 mt-1">
-                      <Icons.Bot size={16} />
-                    </div>
-                  )}
-                  
-                  <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm text-sm leading-relaxed ${
-                    msg.role === 'user' 
-                      ? 'bg-tcm-darkGreen text-white rounded-br-none' 
-                      : 'bg-white text-gray-700 border border-gray-100 rounded-bl-none'
-                  }`}>
-                     {msg.role === 'model' ? (
-                       <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:text-tcm-darkGreen prose-strong:text-tcm-darkGreen">
-                         {/* Naive markdown-ish rendering for demo */}
-                         {msg.text.split('\n').map((line, i) => <p key={i}>{line}</p>)}
-                       </div>
-                     ) : (
-                       msg.text
-                     )}
-                  </div>
+            <div className="flex-1 overflow-y-auto p-6 bg-[#f8f9fa] dark:bg-[#121825] transition-colors">
+              <div className="max-w-4xl mx-auto w-full space-y-6">
+                {activeSession.messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                    {msg.role === 'model' && (
+                      <div className="w-8 h-8 rounded-full bg-tcm-darkGreen flex items-center justify-center text-white mr-3 shadow-sm flex-shrink-0 mt-1">
+                        <Icons.Bot size={16} />
+                      </div>
+                    )}
 
-                  {msg.role === 'user' && (
-                     <img src={user.avatar} className="w-8 h-8 rounded-full ml-3 border border-gray-200 flex-shrink-0 mt-1" alt="User" />
-                  )}
-                </div>
-              ))}
-              
-              {isLoading && (
-                <div className="flex justify-start">
-                   <div className="w-8 h-8 rounded-full bg-tcm-darkGreen flex items-center justify-center text-white mr-3 shadow-sm flex-shrink-0">
-                      <Icons.Bot size={16} />
-                   </div>
-                   <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 shadow-sm flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-75"></span>
-                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+                    <div className={`max-w-[80%] p-2 text-sm leading-relaxed text-gray-800 dark:text-gray-100`}>
+                       {msg.role === 'model' ? (
+                         <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-headings:text-tcm-darkGreen dark:prose-headings:text-tcm-lightGreen prose-strong:text-tcm-darkGreen dark:prose-strong:text-tcm-gold">
+                           {/* Naive markdown-ish rendering for demo */}
+                           {msg.text.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+                         </div>
+                       ) : (
+                         msg.text
+                       )}
+                    </div>
+
+                    {msg.role === 'user' && (
+                       <img src={user.avatar} className="w-8 h-8 rounded-full ml-3 border border-gray-200 flex-shrink-0 mt-1" alt="User" />
+                    )}
+                  </div>
+                ))}
+
+                {isLoading && (
+                  <div className="flex justify-start">
+                     <div className="w-8 h-8 rounded-full bg-tcm-darkGreen flex items-center justify-center text-white mr-3 shadow-sm flex-shrink-0">
+                        <Icons.Bot size={16} />
+                     </div>
+                     <div className="bg-white dark:bg-gray-700 px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-600 shadow-sm flex items-center gap-2">
+                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                     </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.02)] z-10 pb-6">
+            <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-[0_-5px_20px_rgba(0,0,0,0.02)] z-10 pb-6 transition-colors">
               <div className="max-w-4xl mx-auto w-full">
-                 
+
                  {/* Toolbar: Thinking & Search - Moved above input capsule */}
                  <div className="flex items-center gap-3 mb-2 px-1">
-                    <button 
+                    <button
                       onClick={() => setEnableDeepThink(!enableDeepThink)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${enableDeepThink ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${enableDeepThink ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
                     >
                       <Icons.BrainCircuit size={14} className={enableDeepThink ? "animate-pulse" : ""} />
-                      深度思考 {enableDeepThink && <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full ml-1"></span>}
+                      Deep Thinking {enableDeepThink && <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full ml-1"></span>}
                     </button>
-                    
-                    <button 
+
+                    <button
                       onClick={() => setEnableWebSearch(!enableWebSearch)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${enableWebSearch ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${enableWebSearch ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 shadow-sm' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
                     >
                       <Icons.Globe size={14} />
-                      网络搜索 {enableWebSearch && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full ml-1"></span>}
+                      Web Search {enableWebSearch && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full ml-1"></span>}
                     </button>
                  </div>
 
                  {/* Input Capsule */}
-                 <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-3xl p-2 transition-shadow focus-within:ring-2 focus-within:ring-tcm-lightGreen/20 focus-within:border-tcm-lightGreen/50 focus-within:bg-white focus-within:shadow-md">
+                 <div className="relative flex items-end gap-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-3xl p-2 transition-shadow focus-within:ring-2 focus-within:ring-tcm-lightGreen/20 focus-within:border-tcm-lightGreen/50 focus-within:bg-white dark:focus-within:bg-gray-700 focus-within:shadow-md">
                    <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-                   <button 
+                   <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
-                      title="上传报告/图像"
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      title="Upload Reports/Images"
                    >
                      <Icons.Paperclip size={20} />
                    </button>
-                   <button 
+                   <button
                       onClick={handleVoiceInput}
-                      className="p-2 text-gray-400 hover:text-tcm-darkGreen rounded-full hover:bg-gray-100 transition-colors"
-                      title="语音听写"
+                      className="p-2 text-gray-400 hover:text-tcm-darkGreen dark:hover:text-tcm-lightGreen rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      title="Voice Dictation"
                    >
                      <Icons.Mic size={20} />
                    </button>
-                   <textarea 
+                   <textarea
                      value={inputValue}
                      onChange={(e) => setInputValue(e.target.value)}
                      onKeyDown={(e) => {
@@ -663,34 +893,34 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
                          handleSendMessage();
                        }
                      }}
-                     placeholder="输入临床问题、上传结果或请求鉴别诊断..."
-                     className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-800 resize-none max-h-32 py-2"
+                     placeholder="Enter clinical question, upload results, or request differential diagnosis..."
+                     className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none max-h-32 py-2"
                      rows={1}
                      style={{minHeight: '24px'}}
                    />
-                   <button 
+                   <button
                      onClick={() => handleSendMessage()}
                      disabled={!inputValue.trim() || isLoading}
-                     className="p-2 bg-tcm-darkGreen text-white rounded-full hover:bg-green-900 disabled:opacity-50 disabled:hover:bg-tcm-darkGreen transition-colors shadow-sm"
+                     className="p-2 bg-tcm-darkGreen text-white rounded-full hover:bg-green-900 dark:hover:bg-green-700 disabled:opacity-50 disabled:hover:bg-tcm-darkGreen transition-colors shadow-sm"
                    >
                      <Icons.Send size={18} className={isLoading ? "animate-pulse" : ""} />
                    </button>
                  </div>
               </div>
-              <p className="text-center text-[10px] text-gray-400 mt-2">
-                AI生成的见解必须由合格的医师验证。
+              <p className="text-center text-[10px] text-gray-400 dark:text-gray-500 mt-2">
+                AI-generated insights must be verified by a qualified physician.
               </p>
             </div>
           </main>
         </div>
       ) : (
         // Other Views Container
-        <div className="flex-1 bg-white overflow-hidden flex flex-col">
-          <header className="h-16 border-b border-gray-100 flex items-center justify-between px-6 bg-white z-10 shrink-0">
-             <h2 className="text-lg font-bold text-gray-800 font-serif-sc flex items-center gap-2 capitalize">
+        <div className="flex-1 bg-white dark:bg-gray-800 overflow-hidden flex flex-col transition-colors">
+          <header className="h-16 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between px-6 bg-white dark:bg-gray-800 z-10 shrink-0 transition-colors">
+             <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 font-serif-sc flex items-center gap-2 capitalize">
                {activeTab.replace('-', ' ')}
              </h2>
-             <div className="text-xs text-gray-400">专业工作区</div>
+             <div className="text-xs text-gray-400">Professional Workspace</div>
           </header>
           {activeTab === 'patients' && <PatientsView />}
           {activeTab === 'report-analysis' && <ReportAnalysisView />}
@@ -706,7 +936,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
 
 // Helper Components
 const NavItem = ({ icon: Icon, label, isActive, onClick }: { icon: any, label: string, isActive: boolean, onClick: () => void }) => (
-  <button 
+  <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
       isActive 
@@ -720,9 +950,9 @@ const NavItem = ({ icon: Icon, label, isActive, onClick }: { icon: any, label: s
 );
 
 const QuickActionButton = ({ label, onClick }: { label: string, onClick: () => void }) => (
-  <button 
+  <button
     onClick={onClick}
-    className="px-3 py-1.5 text-xs font-medium text-tcm-lightGreen bg-tcm-lightGreen/10 border border-tcm-lightGreen/20 rounded-full hover:bg-tcm-lightGreen hover:text-white transition-all"
+    className="px-3 py-1.5 text-xs font-medium text-tcm-lightGreen dark:text-tcm-lightGreen bg-tcm-lightGreen/10 dark:bg-tcm-lightGreen/20 border border-tcm-lightGreen/20 dark:border-tcm-lightGreen/30 rounded-full hover:bg-tcm-lightGreen hover:text-white dark:hover:bg-tcm-lightGreen dark:hover:text-white transition-all"
   >
     {label}
   </button>

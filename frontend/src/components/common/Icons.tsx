@@ -1,19 +1,20 @@
 import React from 'react';
-import { 
-  Stethoscope, 
-  User, 
-  Activity, 
-  FileText, 
-  LogOut, 
-  MessageSquare, 
-  Settings, 
-  Menu, 
+import {
+  Stethoscope,
+  User,
+  Activity,
+  FileText,
+  LogOut,
+  MessageSquare,
+  Settings,
+  Menu,
   X,
   Send,
   ShieldPlus,
   BrainCircuit,
   Leaf,
   ChevronRight,
+  ChevronDown,
   UploadCloud,
   UserCircle2,
   Edit3,
@@ -25,7 +26,11 @@ import {
   Zap,
   Camera,
   Bot,
-  PanelLeft
+  PanelLeft,
+  Sun,
+  Moon,
+  Image,
+  Plus
 } from 'lucide-react';
 
 export const Icons = {
@@ -43,6 +48,7 @@ export const Icons = {
   BrainCircuit,
   Leaf,
   ChevronRight,
+  ChevronDown,
   UploadCloud,
   UserCircle2,
   Edit3,
@@ -54,5 +60,9 @@ export const Icons = {
   Zap,
   Camera,
   Bot,
-  PanelLeft
+  PanelLeft,
+  Sun,
+  Moon,
+  Image,
+  Plus
 };

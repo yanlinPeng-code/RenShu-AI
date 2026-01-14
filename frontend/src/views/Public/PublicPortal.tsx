@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { User, ChatMessage, UserPersona, AVAILABLE_MODELS, AIModelConfig } from '../../types/types';
 import { Icons } from '../../components/common/Icons';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import { createPublicChat, analyzeUserPersona, sendMessageWithConfig } from '../../services/geminiService';
 import { Chat } from "@google/genai";
 
@@ -15,30 +16,107 @@ interface Attachment {
   base64: string;
 }
 
-// Mock History
-const MOCK_HISTORY = [
-  { id: '1', title: '季节性过敏建议', date: '今天' },
-  { id: '2', title: '睡眠周期分析', date: '昨天' },
-  { id: '3', title: '饮食建议', date: '10月24日' },
-];
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  lastModified: Date;
+}
+
+// Helper to group sessions by date
+const groupSessionsByDate = (sessions: ChatSession[]) => {
+  const groups: { [key: string]: ChatSession[] } = {
+    'Today': [],
+    'Yesterday': [],
+    'Previous 7 Days': [],
+    'Older': []
+  };
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  sessions.forEach(session => {
+    const date = new Date(session.lastModified);
+    const sessionDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (sessionDate.getTime() === today.getTime()) {
+      groups['Today'].push(session);
+    } else if (sessionDate.getTime() === yesterday.getTime()) {
+      groups['Yesterday'].push(session);
+    } else if (sessionDate > lastWeek) {
+      groups['Previous 7 Days'].push(session);
+    } else {
+      groups['Older'].push(session);
+    }
+  });
+
+  return groups;
+};
 
 const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
-  // Chat & AI State
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // --- State ---
+
+  // Sessions Management
+  const [sessions, setSessions] = useState<ChatSession[]>([
+    {
+      id: 'init-1',
+      title: 'Welcome Session',
+      messages: [{
+        id: 'welcome',
+        role: 'model',
+        text: `Hello ${user.name}. How can I assist you with your health today?`,
+        timestamp: new Date()
+      }],
+      lastModified: new Date()
+    },
+    {
+      id: 'hist-1',
+      title: 'Headache analysis',
+      messages: [],
+      lastModified: new Date(Date.now() - 86400000) // Yesterday
+    },
+    {
+      id: 'hist-2',
+      title: 'Dietary plan for spring',
+      messages: [],
+      lastModified: new Date(Date.now() - 172800000) // 2 days ago
+    }
+  ]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('init-1');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  // UI Toggles
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  // Custom Model Selector State
+  const [showModelSelector, setShowModelSelector] = useState(false);
+
+  // Current Chat State (Derived/synced with activeSession)
+  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isPersonaAnalyzing, setIsPersonaAnalyzing] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
-  
-  // Settings & Toggles
+
+  // Settings
   const [selectedModel, setSelectedModel] = useState<AIModelConfig>(AVAILABLE_MODELS[0]);
   const [enableDeepThink, setEnableDeepThink] = useState(false);
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  
-  // User Profile State
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  // Theme & Persona
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme_public');
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
   const [persona, setPersona] = useState<UserPersona>(user.persona || {
     age: 'Unknown',
     gender: 'Unknown',
@@ -49,37 +127,94 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
     recommendedTreatment: 'Wellness advice'
   });
   const [editPersonaForm, setEditPersonaForm] = useState<UserPersona>(persona);
-
-  // Animation State
   const [changedFields, setChangedFields] = useState<string[]>([]);
+  const [isPersonaAnalyzing, setIsPersonaAnalyzing] = useState(false);
   const [healthScore, setHealthScore] = useState(user.healthScore || 85);
-  
+
+  // Refs
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Initialization ---
+  // --- Effects ---
+
+  // Use layout effect to prevent flash of wrong theme when switching portals
+  useLayoutEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme_public', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme_public', 'light');
+    }
+  }, [isDarkMode]);
+
   useEffect(() => {
-    // Reset chat when model changes
     chatRef.current = createPublicChat(selectedModel.id);
-    setMessages([{
-      id: 'init',
-      role: 'model',
-      text: `您好 ${user.name}。我正在使用 ${selectedModel.name}。您今天感觉如何？`,
-      timestamp: new Date()
-    }]);
-  }, [user.name, selectedModel]);
+  }, [activeSessionId, selectedModel]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [activeSession.messages]);
 
-  // --- Handlers ---
+  useEffect(() => {
+    if (isSearchActive && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchActive]);
+
+  // --- Handlers: Session Management ---
+
+  const handleNewChat = () => {
+    const newSession: ChatSession = {
+      id: Date.now().toString(),
+      title: 'New Conversation',
+      messages: [{
+        id: Date.now().toString(),
+        role: 'model',
+        text: `Hello ${user.name}. I am using ${selectedModel.name}. How are you feeling today?`,
+        timestamp: new Date()
+      }],
+      lastModified: new Date()
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newSession.id);
+    if (window.innerWidth < 768) setShowLeftSidebar(false);
+  };
+
+  const handleDeleteSession = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newSessions = sessions.filter(s => s.id !== id);
+    setSessions(newSessions);
+    if (activeSessionId === id && newSessions.length > 0) {
+      setActiveSessionId(newSessions[0].id);
+    } else if (newSessions.length === 0) {
+      handleNewChat(); // Always keep one
+    }
+  };
+
+  const startRenameSession = (e: React.MouseEvent, session: ChatSession) => {
+    e.stopPropagation();
+    setEditingSessionId(session.id);
+    setEditTitle(session.title);
+  };
+
+  const saveRenameSession = () => {
+    if (editingSessionId) {
+      setSessions(prev => prev.map(s => s.id === editingSessionId ? { ...s, title: editTitle } : s));
+      setEditingSessionId(null);
+    }
+  };
+
+  const filteredSessions = sessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const groupedSessions = groupSessionsByDate(filteredSessions);
+
+  // --- Handlers: Chat ---
 
   const handleSendMessage = async () => {
     if ((!inputValue.trim() && attachments.length === 0) || !chatRef.current) return;
 
-    // Prepare User Message
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -92,410 +227,491 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
       }))
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    // Optimistic Update
+    const updatedMessages = [...activeSession.messages, userMsg];
+    updateSessionMessages(activeSessionId, updatedMessages);
+
+    // Auto-rename
+    if (activeSession.messages.length <= 1 && activeSession.title === 'New Conversation') {
+       const newTitle = inputValue.slice(0, 20) + (inputValue.length > 20 ? '...' : '');
+       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, title: newTitle } : s));
+    }
+
     setInputValue('');
     const currentAttachments = [...attachments];
-    setAttachments([]); // Clear attachments immediately
+    setAttachments([]);
     setIsLoading(true);
     setIsPersonaAnalyzing(true);
 
     try {
-      // Prepare file parts for API
       const fileParts = currentAttachments.map(a => ({
-        data: a.base64.split(',')[1], // Remove 'data:mime;base64,' prefix
+        data: a.base64.split(',')[1],
         mimeType: a.file.type
       }));
 
-      // Send to Chat with Config
       const response = await sendMessageWithConfig(
-        chatRef.current, 
-        userMsg.text || (currentAttachments.length > 0 ? "Analyzed attachment" : ""), 
+        chatRef.current,
+        userMsg.text || (currentAttachments.length > 0 ? "Analyzed attachment" : ""),
         fileParts,
         {
           enableThinking: enableDeepThink,
           enableSearch: enableWebSearch
         }
       );
-      
+
       const modelMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: response.text || "No response text generated.",
+        text: response.text || "No response generated.",
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, modelMsg]);
 
-      // Update Persona (Background)
-      analyzeUserPersona(userMsg.text, persona).then(newPersona => {
-        const changes: string[] = [];
-        (Object.keys(newPersona) as Array<keyof UserPersona>).forEach(key => {
-          if (newPersona[key] !== persona[key]) changes.push(key);
-        });
+      updateSessionMessages(activeSessionId, [...updatedMessages, modelMsg]);
 
-        if (changes.length > 0) {
-          setChangedFields(changes);
-          setPersona(newPersona);
-          setHealthScore(prev => Math.max(0, Math.min(100, prev + (Math.random() > 0.5 ? 1 : -1))));
-          setTimeout(() => setChangedFields([]), 2500);
-        }
-        setIsPersonaAnalyzing(false);
+      // Persona Analysis
+      const newPersona = await analyzeUserPersona(userMsg.text, persona);
+      const changes: string[] = [];
+      (Object.keys(newPersona) as Array<keyof UserPersona>).forEach(key => {
+        if (newPersona[key] !== persona[key]) changes.push(key);
       });
+      if (changes.length > 0) {
+        setPersona(newPersona);
+        setEditPersonaForm(newPersona);
+        setChangedFields(changes);
+        setTimeout(() => setChangedFields([]), 3000);
+      }
 
-    } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, {
+    } catch (e) {
+      console.error(e);
+      updateSessionMessages(activeSessionId, [...updatedMessages, {
         id: Date.now().toString(),
         role: 'model',
-        text: "很抱歉，我目前在连接AI服务时遇到问题。",
+        text: "I apologize, but I'm having trouble connecting. Please try again.",
         timestamp: new Date()
       }]);
-      setIsPersonaAnalyzing(false);
     } finally {
       setIsLoading(false);
+      setIsPersonaAnalyzing(false);
     }
   };
 
-  const handleVoiceInput = () => {
-    // Basic Web Speech API Implementation
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US'; // Could make this dynamic
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setInputValue(prev => prev + " (正在聆听...)");
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputValue(prev => prev.replace(" (正在聆听...)", "") + " " + transcript);
-      };
-
-      recognition.onerror = () => {
-        setInputValue(prev => prev.replace(" (Listening...)", ""));
-        alert("语音识别错误。");
-      };
-
-      recognition.start();
-    } else {
-      alert("此浏览器不支持语音识别。");
-    }
+  const updateSessionMessages = (sessionId: string, newMessages: ChatMessage[]) => {
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: newMessages, lastModified: new Date() } : s));
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onload = (ev) => {
-        if (ev.target?.result) {
-          setAttachments(prev => [...prev, {
-            file,
-            previewUrl: URL.createObjectURL(file),
-            base64: ev.target.result as string
-          }]);
-        }
+         if (ev.target?.result) {
+            setAttachments(prev => [...prev, {
+              file,
+              previewUrl: URL.createObjectURL(file),
+              base64: ev.target.result as string
+            }]);
+         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSaveProfile = () => {
-    setPersona(editPersonaForm);
-    setIsEditingProfile(false);
+  const handleVoiceInput = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setInputValue(prev => prev + " (Listening...)");
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(prev => prev.replace(" (Listening...)", "") + " " + transcript);
+      };
+
+      recognition.onerror = () => {
+        setInputValue(prev => prev.replace(" (Listening...)", ""));
+      };
+
+      recognition.start();
+    } else {
+      alert("Speech recognition not supported.");
+    }
   };
 
-  // --- Components ---
-
-  const InfoItem = ({ fieldKey, label, value, icon: Icon, isAlert = false }: { fieldKey: string, label: string, value: string, icon?: any, isAlert?: boolean }) => {
-    const isChanged = changedFields.includes(fieldKey);
-    return (
-      <div className={`mb-4 last:mb-0 transition-all duration-500 ${isChanged ? 'transform scale-105' : ''}`}>
-        <div className="flex items-center gap-2 mb-1">
-          {Icon && <Icon size={14} className={isAlert ? "text-red-500" : "text-tcm-lightGreen"} />}
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</span>
-          {isChanged && <span className="ml-auto w-2 h-2 rounded-full bg-tcm-gold animate-ping"></span>}
-        </div>
-        <div className={`text-sm font-medium leading-snug rounded transition-colors duration-1000 ${isAlert ? "text-red-700 bg-red-50 border border-red-100 p-2" : "text-tcm-darkGreen"} ${isChanged && !isAlert ? "bg-tcm-gold/20 p-2 text-black" : ""}`}>
-          {value || "—"}
-        </div>
-      </div>
-    );
+  const toggleTheme = () => {
+      setIsDarkMode(!isDarkMode);
+      setShowUserMenu(false); // Immediate close
   };
+
+  // --- Render ---
 
   return (
-    <div className="w-full h-full flex flex-col bg-tcm-cream overflow-hidden relative">
-      
-      {/* Edit Profile Modal */}
-      {isEditingProfile && (
-        <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-tcm-cream">
-              <h3 className="text-lg font-bold text-tcm-darkGreen font-serif-sc flex items-center gap-2">
-                <Icons.Edit3 size={18} /> 编辑个人资料
-              </h3>
-              <button onClick={() => setIsEditingProfile(false)} className="text-gray-400 hover:text-gray-600"><Icons.X size={20}/></button>
-            </div>
-            <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">年龄</label>
-                  <input value={editPersonaForm.age} onChange={e => setEditPersonaForm({...editPersonaForm, age: e.target.value})} className="w-full p-2 border rounded-lg focus:ring-tcm-gold" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">性别</label>
-                  <select value={editPersonaForm.gender} onChange={e => setEditPersonaForm({...editPersonaForm, gender: e.target.value})} className="w-full p-2 border rounded-lg focus:ring-tcm-gold bg-white">
-                    <option value="Male">男</option>
-                    <option value="Female">女</option>
-                    <option value="Other">其他</option>
-                    <option value="Unknown">未知</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">主诉</label>
-                <input value={editPersonaForm.chiefComplaint} onChange={e => setEditPersonaForm({...editPersonaForm, chiefComplaint: e.target.value})} className="w-full p-2 border rounded-lg focus:ring-tcm-gold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">病史</label>
-                <textarea value={editPersonaForm.medicalHistory} onChange={e => setEditPersonaForm({...editPersonaForm, medicalHistory: e.target.value})} className="w-full p-2 border rounded-lg focus:ring-tcm-gold h-20" />
-              </div>
-              <div>
-                 <label className="block text-xs font-bold text-gray-500 mb-1">禁忌症</label>
-                 <input value={editPersonaForm.contraindications} onChange={e => setEditPersonaForm({...editPersonaForm, contraindications: e.target.value})} className="w-full p-2 border rounded-lg focus:ring-tcm-gold" />
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 mt-auto">
-               <button onClick={() => setIsEditingProfile(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg">取消</button>
-               <button onClick={handleSaveProfile} className="px-6 py-2 text-sm bg-tcm-darkGreen text-white rounded-lg hover:bg-green-800">保存更改</button>
-            </div>
+    <div className="h-screen w-full flex bg-rice-paper overflow-hidden transition-colors duration-500">
+
+      {/* 1. LEFT SIDEBAR: Gemini Style */}
+      <aside
+        className={`${showLeftSidebar ? 'w-[280px]' : 'w-0'} flex-shrink-0 bg-[#f0f4f9]/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border-r border-tcm-lightGreen/10 flex flex-col transition-all duration-300 overflow-hidden relative z-30`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header: Menu & Search */}
+          <div className="flex items-center justify-between p-4 pb-2">
+            <button
+               onClick={() => setShowLeftSidebar(false)}
+               className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"
+               title="Collapse Menu"
+            >
+              <Icons.Menu size={20} />
+            </button>
+
+            <button
+               onClick={() => setIsSearchActive(!isSearchActive)}
+               className={`p-2 rounded-full transition-colors ${isSearchActive ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'}`}
+               title="Search Chats"
+            >
+              <Icons.Stethoscope className="rotate-90" size={20} />
+            </button>
           </div>
-        </div>
-      )}
 
-      {/* Navbar */}
-      <header className="h-16 bg-white/80 backdrop-blur-md border-b border-tcm-gold/20 flex items-center justify-between px-6 z-20 sticky top-0 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-tcm-darkGreen flex items-center justify-center text-tcm-gold font-serif-sc font-bold">仁</div>
-            <span className="text-xl font-bold text-tcm-darkGreen font-serif-sc hidden md:block">仁术公众版</span>
-          </div>
-          
-          {/* Model Selector Dropdown */}
-          <div className="relative group ml-4">
-             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-               <Icons.BrainCircuit size={14} />
-             </div>
-             <select 
-               className="bg-gray-100 hover:bg-white border border-transparent hover:border-gray-300 text-gray-700 text-sm rounded-full pl-9 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-tcm-lightGreen/50 focus:bg-white transition-all appearance-none cursor-pointer font-medium"
-               value={selectedModel.id}
-               onChange={(e) => setSelectedModel(AVAILABLE_MODELS.find(m => m.id === e.target.value) || AVAILABLE_MODELS[0])}
-             >
-               {AVAILABLE_MODELS.map(model => (
-                 <option key={model.id} value={model.id}>
-                   {model.name}
-                 </option>
-               ))}
-             </select>
-             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
-               <Icons.ChevronRight size={14} className="rotate-90" />
-             </div>
-          </div>
-        </div>
-        
-        {/* Right side is empty now, user settings moved to sidebar */}
-        <div className="w-8"></div> 
-      </header>
-
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* 1. History Sidebar (Left) */}
-        <div className={`bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${showHistory ? 'w-64 opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
-             <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">聊天历史</span>
-                <button 
-                   onClick={() => setShowHistory(false)}
-                   className="text-gray-400 hover:text-gray-600"
-                >
-                   <Icons.PanelLeft size={20} />
-                </button>
-             </div>
-             
-             {/* History List - Grows to take available space */}
-             <div className="p-3 flex-1 overflow-y-auto custom-scrollbar">
-               <button 
-                 onClick={() => { setMessages([]); setInputValue(''); }}
-                 className="w-full flex items-center gap-2 px-3 py-2 bg-tcm-darkGreen text-white rounded-lg text-sm hover:bg-green-800 transition-colors shadow-sm mb-4 whitespace-nowrap"
-               >
-                 <Icons.MessageSquare size={16} /> 新建聊天
-               </button>
-               
-               <div className="space-y-1">
-                 {MOCK_HISTORY.map((item) => (
-                   <button key={item.id} className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-white hover:shadow-sm transition-all truncate group">
-                     <span className="block truncate">{item.title}</span>
-                     <span className="text-[10px] text-gray-400">{item.date}</span>
-                   </button>
-                 ))}
-               </div>
-             </div>
-
-             {/* User Profile - Fixed at bottom left */}
-             <div className="p-4 border-t border-gray-200 bg-white shrink-0 relative">
-               <button 
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-3 w-full hover:bg-gray-50 p-2 rounded-lg transition-colors group"
-                >
-                  <img src={user.avatar} alt="User" className="w-9 h-9 rounded-full border border-gray-200 object-cover shrink-0" />
-                  <div className="flex-1 min-w-0 text-left">
-                    <span className="block text-sm font-bold text-gray-700 group-hover:text-tcm-darkGreen truncate">{user.name}</span>
-                    <span className="block text-[10px] text-gray-400 font-medium uppercase tracking-wider">我的账户</span>
-                  </div>
-                  <Icons.ChevronRight size={14} className={`text-gray-400 transition-transform ${showUserMenu ? '-rotate-90' : ''}`} />
-               </button>
-
-               {/* Pop-up Menu (Above the profile) */}
-               {showUserMenu && (
-                  <div className="absolute bottom-full left-2 right-2 mb-2 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
-                    <button 
-                      onClick={() => {
-                        setEditPersonaForm(persona);
-                        setIsEditingProfile(true);
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50"
-                    >
-                      <Icons.Edit3 size={16} className="text-tcm-gold"/> 编辑个人资料
-                    </button>
-                    <button onClick={onLogout} className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3">
-                      <Icons.LogOut size={16}/> 退出登录
-                    </button>
-                  </div>
-               )}
-             </div>
-        </div>
-
-        {/* 2. Main Chat Area (Middle) */}
-        <main className="flex-1 flex flex-col relative bg-gray-50/50 min-w-0">
-           {/* Sidebar Toggle Button (Floating) - Only visible when history is hidden */}
-           {!showHistory && (
-             <div className="absolute top-4 left-4 z-20">
-                <button 
-                   onClick={() => setShowHistory(true)}
-                   className="p-2 bg-white/80 hover:bg-white text-gray-500 hover:text-tcm-darkGreen rounded-lg shadow-sm border border-gray-200 transition-all backdrop-blur-sm"
-                   title="Show History"
-                >
-                   <Icons.PanelLeft size={20} />
-                </button>
-             </div>
-           )}
-
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-16 md:pt-8">
-            <div className="max-w-4xl mx-auto space-y-6">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                <div className={`max-w-[85%] md:max-w-[70%] p-5 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed relative ${msg.role === 'user' ? 'bg-tcm-darkGreen text-white rounded-br-none shadow-md' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none shadow-sm'}`}>
-                  {msg.role === 'model' && (
-                    <div className="absolute -left-10 top-0 w-8 h-8 bg-tcm-cream rounded-full flex items-center justify-center border border-tcm-gold/30 hidden md:flex">
-                      <span className="text-tcm-darkGreen font-serif-sc font-bold text-xs">仁</span>
-                    </div>
-                  )}
-                  {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="flex gap-2 mb-3">
-                      {msg.attachments.map((att, idx) => (
-                         <div key={idx} className="relative group">
-                            {att.type === 'image' ? (
-                              <img src={att.url} alt="附件" className="w-24 h-24 object-cover rounded-lg border border-white/20" />
-                            ) : (
-                              <div className="w-24 h-24 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-500 text-xs p-2 text-center">
-                                <Icons.FileText size={20} className="mb-1"/>
-                                <span className="truncate w-full">{att.name}</span>
-                              </div>
-                            )}
-                         </div>
-                      ))}
-                    </div>
-                  )}
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-               <div className="flex justify-start animate-in fade-in">
-                 <div className="bg-white p-4 rounded-2xl rounded-bl-none border border-gray-100 flex items-center gap-2 shadow-sm">
-                    <div className="w-2 h-2 bg-tcm-lightGreen rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-tcm-lightGreen rounded-full animate-bounce delay-75"></div>
-                    <div className="w-2 h-2 bg-tcm-lightGreen rounded-full animate-bounce delay-150"></div>
+          {/* New Chat & Search Input */}
+          <div className="px-4 py-2">
+            {isSearchActive ? (
+              <div className="relative animate-in fade-in slide-in-from-top-1">
+                 <input
+                   ref={searchInputRef}
+                   type="text"
+                   placeholder="Search..."
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="w-full bg-white dark:bg-black/20 border border-transparent dark:border-white/10 rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 shadow-sm"
+                 />
+                 <div className="absolute left-3 top-2.5 text-gray-500">
+                   <Icons.Activity size={16} />
                  </div>
+                 <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                   <Icons.X size={16} />
+                 </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-3 px-4 py-3 bg-[#dde3ea] dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-200 rounded-2xl hover:bg-[#d0d7de] dark:hover:bg-[#333] transition-colors w-full shadow-sm"
+              >
+                <Icons.Edit3 size={18} />
+                <span className="text-sm font-medium">New Chat</span>
+              </button>
+            )}
+          </div>
+
+          {/* Chat History List (Grouped) */}
+          <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar space-y-4">
+             {Object.entries(groupedSessions).map(([group, groupSessions]) => (
+               groupSessions.length > 0 && (
+                 <div key={group} className="animate-in fade-in">
+                   <div className="px-4 py-2 text-xs font-bold text-gray-500 dark:text-gray-400">{group}</div>
+                   {groupSessions.map(session => (
+                      <div
+                        key={session.id}
+                        onClick={() => { setActiveSessionId(session.id); if(window.innerWidth < 768) setShowLeftSidebar(false); }}
+                        className={`group flex items-center gap-3 px-4 py-2 mx-2 rounded-full cursor-pointer transition-colors ${
+                          activeSessionId === session.id 
+                            ? 'bg-tcm-lightGreen/20 dark:bg-tcm-lightGreen/10 text-tcm-darkGreen dark:text-tcm-freshGreen font-medium' 
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Icons.MessageSquare size={16} className="flex-shrink-0 opacity-70" />
+
+                        <div className="flex-1 min-w-0">
+                          {editingSessionId === session.id ? (
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onBlur={saveRenameSession}
+                              onKeyDown={(e) => e.key === 'Enter' && saveRenameSession()}
+                              autoFocus
+                              className="w-full bg-transparent border-b border-gray-400 focus:outline-none text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <div className="text-sm truncate">
+                              {session.title}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hover Actions */}
+                        <div className={`flex items-center ${activeSessionId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                           <button onClick={(e) => startRenameSession(e, session)} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/20 rounded-full">
+                             <Icons.Edit3 size={12} />
+                           </button>
+                           <button onClick={(e) => handleDeleteSession(e, session.id)} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/20 rounded-full hover:text-red-500">
+                             <Icons.Trash2 size={12} />
+                           </button>
+                        </div>
+                      </div>
+                   ))}
+                 </div>
+               )
+             ))}
+          </div>
+
+          {/* Bottom: Settings / User */}
+          <div className="p-2 border-t border-gray-200 dark:border-white/5 relative bg-white/50 dark:bg-black/20">
+             {showUserMenu && (
+                <div className="absolute bottom-full left-2 right-2 mb-2 bg-[#f0f4f9] dark:bg-[#1e1e1e] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-in slide-in-from-bottom-2 z-40">
+                  <button onClick={() => setIsEditingProfile(true)} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/5 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
+                    <Icons.Edit3 size={16}/> Edit Profile
+                  </button>
+                  <button onClick={toggleTheme} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/5 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
+                    {isDarkMode ? <Icons.Sun size={16} /> : <Icons.Moon size={16} />}
+                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+                  <button onClick={onLogout} className="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-sm text-red-600 dark:text-red-400 border-t border-gray-200 dark:border-gray-700">
+                    <Icons.LogOut size={16}/> Sign Out
+                  </button>
+                </div>
+             )}
+
+             <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className={`flex items-center gap-3 w-full p-3 rounded-full hover:bg-gray-200 dark:hover:bg-white/5 transition-colors ${showUserMenu ? 'bg-gray-200 dark:bg-white/5' : ''}`}
+             >
+                <div className="w-8 h-8 rounded-full bg-tcm-darkGreen text-white flex items-center justify-center text-xs font-bold">
+                   {user.name.charAt(0)}
+                </div>
+                <div className="flex-1 text-left text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
+                  {user.name}
+                </div>
+                <Icons.Settings size={18} className="text-gray-500" />
+             </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* 2. MIDDLE: Main Chat Area */}
+      <main className="flex-1 flex flex-col relative z-10 transition-colors duration-500 min-w-0 bg-transparent">
+
+        {/* Top Bar */}
+        <header className="h-16 flex items-center justify-between px-6 z-10 transition-colors bg-white/80 dark:bg-[#131314]/80 backdrop-blur-sm border-b border-tcm-lightGreen/5">
+          <div className="flex items-center gap-3">
+             {!showLeftSidebar && (
+               <button
+                 onClick={() => setShowLeftSidebar(true)}
+                 className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors"
+               >
+                 <Icons.Menu size={20} />
+               </button>
+             )}
+
+             <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 px-3 py-1.5 rounded-lg transition-colors group">
+                <BrandLogo size="sm" showText={true} />
+                <Icons.ChevronRight size={14} className="text-gray-400 group-hover:rotate-90 transition-transform" />
+             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+             {/* Beautiful Custom Model Selector */}
+             <div className="relative">
+                <button
+                  onClick={() => setShowModelSelector(!showModelSelector)}
+                  className={`flex items-center justify-between gap-2 w-52 bg-white dark:bg-white/5 border px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm ${showModelSelector ? 'border-tcm-lightGreen ring-2 ring-tcm-lightGreen/20' : 'border-gray-200 dark:border-white/10'}`}
+                >
+                    <div className="flex items-center gap-2 truncate">
+                      <Icons.Zap size={14} className="text-tcm-gold flex-shrink-0" />
+                      <span className="truncate">{selectedModel.name}</span>
+                    </div>
+                    <Icons.ChevronDown size={12} className={`text-gray-400 flex-shrink-0 transition-transform duration-300 ${showModelSelector ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Custom Dropdown Menu */}
+                {showModelSelector && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowModelSelector(false)}></div>
+                    <div className="absolute top-full right-0 mt-2 w-full bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-right">
+                      <div className="p-1.5 space-y-0.5">
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Select AI Model</div>
+                        {AVAILABLE_MODELS.map(model => (
+                          <button
+                            key={model.id}
+                            onClick={() => {
+                              setSelectedModel(model);
+                              setShowModelSelector(false);
+                            }}
+                            className={`w-full text-left p-2 rounded-lg flex items-start gap-2 transition-colors ${
+                              selectedModel.id === model.id 
+                                ? 'bg-tcm-lightGreen/10 border border-tcm-lightGreen/20' 
+                                : 'hover:bg-gray-50 dark:hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
+                            <div className={`mt-0.5 p-1 rounded-md flex-shrink-0 ${
+                              selectedModel.id === model.id 
+                                ? 'bg-tcm-lightGreen text-white' 
+                                : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400'
+                            }`}>
+                              <Icons.Zap size={12} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-xs font-bold truncate ${
+                                selectedModel.id === model.id 
+                                  ? 'text-tcm-darkGreen dark:text-tcm-lightGreen' 
+                                  : 'text-gray-700 dark:text-gray-200'
+                              }`}>
+                                {model.name}
+                              </div>
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0 truncate">
+                                {model.description}
+                              </div>
+                            </div>
+                            {selectedModel.id === model.id && (
+                              <Icons.Check size={14} className="text-tcm-lightGreen mt-1" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="p-2 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-gray-700 text-[10px] text-gray-400 flex justify-between items-center">
+                        <div className="flex items-center gap-1.5">
+                           <Icons.BrainCircuit size={10} className="text-indigo-400" /> Thinking
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                           <Icons.Image size={10} className="text-pink-400" /> Vision
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+             </div>
+
+             <button
+               onClick={() => setShowRightSidebar(!showRightSidebar)}
+               className={`p-2 rounded-full transition-colors ${showRightSidebar ? 'bg-tcm-lightGreen/10 text-tcm-lightGreen' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+               title="Toggle Health Profile"
+             >
+               <Icons.Activity size={20} />
+             </button>
+          </div>
+        </header>
+
+        {/* Chat Stream */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scroll-smooth">
+          <div className="max-w-4xl mx-auto w-full space-y-8">
+            {activeSession.messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center space-y-8 mt-12">
+                 <div className="space-y-2 relative">
+                   {/* Decorative background for welcome */}
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-tcm-lightGreen/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+                   <h1 className="text-4xl md:text-5xl font-medium text-gradient-green pb-2 font-serif-sc">
+                      Hello, {user.name}
+                   </h1>
+                   <h2 className="text-4xl md:text-5xl font-medium text-gray-400 dark:text-gray-500 font-serif-sc">
+                      How can I help you today?
+                   </h2>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full px-4">
+                    {[
+                      {icon: Icons.Activity, text: 'Analyze symptoms'},
+                      {icon: Icons.Leaf, text: 'TCM Advice'},
+                      {icon: Icons.BrainCircuit, text: 'Brainstorm ideas'},
+                      {icon: Icons.Image, text: 'Create image'}
+                    ].map((item, i) => (
+                      <button key={i} className="flex flex-col gap-3 p-4 bg-white/60 dark:bg-[#1e1e1e]/60 backdrop-blur rounded-xl hover:bg-white dark:hover:bg-[#2a2a2a] transition-all hover:-translate-y-1 shadow-sm border border-white/20 dark:border-white/5 text-left group">
+                         <div className="p-2 bg-tcm-freshGreen dark:bg-black/20 w-fit rounded-full group-hover:scale-110 transition-transform">
+                           <item.icon size={20} className="text-tcm-lightGreen" />
+                         </div>
+                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.text}</span>
+                      </button>
+                    ))}
+                 </div>
+              </div>
+            ) : (
+              activeSession.messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up group w-full`}>
+                  {msg.role === 'model' && (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-tcm-lightGreen to-tcm-darkGreen text-white flex items-center justify-center shadow-lg mr-4 flex-shrink-0 mt-1">
+                      <Icons.Zap size={14} />
+                    </div>
+                  )}
+
+                  <div className={`space-y-2 max-w-[85%]`}>
+                    {msg.role === 'user' ? (
+                       <div className="px-5 py-3 text-gray-800 dark:text-white leading-relaxed whitespace-pre-wrap">
+                          {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {msg.attachments.map((att, idx) => (
+                                  att.type === 'image' ? (
+                                    <img key={idx} src={att.url} alt="attachment" className="h-32 rounded-lg border border-gray-200 dark:border-gray-600" />
+                                  ) : (
+                                    <div key={idx} className="flex items-center gap-2 bg-white dark:bg-black/20 p-2 rounded text-xs">
+                                      <Icons.FileText size={14}/> {att.name}
+                                    </div>
+                                  )
+                                ))}
+                              </div>
+                          )}
+                          {msg.text}
+                       </div>
+                    ) : (
+                       <div className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                          <div className="prose prose-lg max-w-none dark:prose-invert prose-p:my-2 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-strong:font-bold">
+                            {msg.text.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+                          </div>
+                       </div>
+                    )}
+
+                    {/* Message Actions */}
+                    {msg.role === 'model' && (
+                      <div className="flex items-center gap-2 pt-1 pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1 text-gray-400 hover:text-gray-600"><Icons.Check size={14}/></button>
+                        <button className="p-1 text-gray-400 hover:text-gray-600"><Icons.Edit3 size={14}/></button>
+                      </div>
+                    )}
+                  </div>
+
+                  {msg.role === 'user' && (
+                    <img src={user.avatar} className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 ml-3 shadow-sm object-cover flex-shrink-0 mt-1" alt="Me" />
+                  )}
+                </div>
+              ))
+            )}
+
+            {isLoading && (
+               <div className="flex justify-start w-full">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-tcm-lightGreen to-tcm-darkGreen text-white flex items-center justify-center shadow-lg mr-4 flex-shrink-0">
+                    <Icons.Zap size={14} />
+                  </div>
+                  <div className="flex items-center gap-1 mt-2">
+                     <div className="w-2 h-2 bg-tcm-lightGreen rounded-full animate-bounce"></div>
+                     <div className="w-2 h-2 bg-tcm-gold rounded-full animate-bounce delay-75"></div>
+                     <div className="w-2 h-2 bg-tcm-darkGreen rounded-full animate-bounce delay-150"></div>
+                  </div>
                </div>
             )}
             <div ref={messagesEndRef} />
-            </div>
           </div>
+        </div>
 
-          {/* Input Area Wrapper */}
-          <div className="bg-white border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.02)] z-10 p-4 pb-6 md:px-8">
-            <div className="max-w-4xl mx-auto w-full">
-              
-              {/* Toolbar: Thinking & Search - Aligned Top Left of Input Box */}
-              <div className="flex items-center gap-3 mb-2 px-1">
-                <button 
-                  onClick={() => setEnableDeepThink(!enableDeepThink)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${enableDeepThink ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                >
-                  <Icons.BrainCircuit size={14} className={enableDeepThink ? "animate-pulse" : ""} />
-                  深度思考 {enableDeepThink && <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full ml-1"></span>}
+        {/* Input Area */}
+        <div className="p-4 md:p-6 pt-0 z-20">
+          <div className="max-w-4xl mx-auto bg-[#f0f4f9] dark:bg-[#1e1e1e] rounded-3xl p-2 flex flex-col gap-2 transition-colors duration-500 relative shadow-sm border border-white/50 dark:border-white/5">
+
+             {/* Input */}
+             <div className="flex items-end gap-2 px-4 pb-1">
+                {/* File Upload Button (Red Box Update) */}
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 mb-1.5 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors bg-gray-200 dark:bg-white/5"
+                    title="Upload File"
+                 >
+                   <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                   <Icons.Plus size={20} />
                 </button>
-                               
-                <button 
-                  onClick={() => setEnableWebSearch(!enableWebSearch)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${enableWebSearch ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                >
-                  <Icons.Globe size={14} />
-                  网络搜索 {enableWebSearch && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full ml-1"></span>}
-                </button>
-              </div>
-
-              {/* Attachment Preview */}
-              {attachments.length > 0 && (
-                <div className="flex gap-3 mb-3 px-1 overflow-x-auto">
-                  {attachments.map((att, idx) => (
-                    <div key={idx} className="relative group shrink-0">
-                      <img src={att.previewUrl} className="w-16 h-16 object-cover rounded-lg border border-gray-200" alt="preview"/>
-                      <button 
-                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600"
-                      >
-                        <Icons.X size={12}/>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Main Input Bar */}
-              <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-3xl p-2 transition-shadow focus-within:ring-2 focus-within:ring-tcm-lightGreen/50 focus-within:bg-white focus-within:shadow-md">
-                
-                {/* Left Actions (Upload & Voice) */}
-                <div className="flex items-center gap-1 pb-2 pl-2">
-                   <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,.pdf,.txt" />
-                   <button 
-                      onClick={() => fileInputRef.current?.click()} 
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors" 
-                      title="附加文件"
-                   >
-                      <Icons.Paperclip size={20} />
-                   </button>
-                   <button 
-                      onClick={handleVoiceInput} 
-                      className="p-2 text-gray-400 hover:text-tcm-darkGreen hover:bg-gray-100 rounded-full transition-colors" 
-                      title="语音输入"
-                   >
-                      <Icons.Mic size={20} />
-                   </button>
-                </div>
-
-                <textarea 
+                <textarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => {
@@ -504,100 +720,129 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                       handleSendMessage();
                     }
                   }}
-                  placeholder={`询问 ${selectedModel.name}... (Shift+Enter 换行)`}
-                  className="flex-1 bg-transparent border-none text-gray-800 px-3 py-3 focus:ring-0 max-h-32 resize-none text-sm md:text-base placeholder-gray-400"
+                  placeholder="Enter a prompt here"
+                  className="flex-1 max-h-48 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 dark:text-gray-100 placeholder-gray-500 resize-none py-4 text-base"
                   rows={1}
-                  style={{minHeight: '44px'}}
                 />
-                
-                <button 
-                  onClick={handleSendMessage}
-                  disabled={(!inputValue.trim() && attachments.length === 0) || isLoading}
-                  className="mb-1 mr-1 bg-gradient-to-br from-tcm-gold to-yellow-600 text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none flex items-center justify-center"
+                <button
+                  onClick={handleVoiceInput}
+                  className="p-2 mb-1.5 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                 >
-                  {isLoading ? <Icons.Zap size={20} className="animate-pulse"/> : <Icons.Send size={20} />}
+                  <Icons.Mic size={20} />
                 </button>
-              </div>
-              
-              <p className="text-center text-[10px] text-gray-400 mt-2 font-serif-sc uppercase tracking-widest opacity-60">
-                仁术AI医疗系统 v2.0
-              </p>
-            </div>
-          </div>
-        </main>
+                {inputValue.trim() || attachments.length > 0 ? (
+                  <button
+                    onClick={() => handleSendMessage()}
+                    className="p-2 mb-1.5 bg-tcm-darkGreen dark:bg-tcm-lightGreen text-white rounded-full hover:opacity-90 transition-opacity shadow-md"
+                  >
+                    <Icons.Send size={18} />
+                  </button>
+                ) : null}
+             </div>
 
-        {/* 3. User Persona Sidebar (Right) */}
-        <aside className="hidden md:flex flex-col w-[20%] min-w-[260px] bg-white border-l border-gray-200 overflow-y-auto custom-scrollbar z-10">
-          <div className="flex-1 p-6">
-            <div className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-100 group relative">
-              <div className="relative w-16 h-16 shrink-0">
-                <img src={user.avatar} className="w-full h-full rounded-full object-cover border-2 border-tcm-cream shadow-sm" />
-                <button 
-                  onClick={() => { setEditPersonaForm(persona); setIsEditingProfile(true); }}
-                  className="absolute -bottom-1 -right-1 bg-white border border-gray-200 rounded-full p-1.5 shadow-sm text-gray-500 hover:text-tcm-darkGreen hover:border-tcm-darkGreen transition-all"
-                  title="编辑照片（模拟）"
-                >
-                  <Icons.Camera size={12} />
-                </button>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                   <h3 className="text-lg font-bold text-tcm-darkGreen font-serif-sc truncate">{user.name}</h3>
-                   <button 
-                     onClick={() => { setEditPersonaForm(persona); setIsEditingProfile(true); }}
-                     className="text-gray-400 hover:text-tcm-gold transition-colors"
-                     title="编辑详情"
-                   >
-                     <Icons.Edit3 size={16} />
-                   </button>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                  <span className={`bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-medium transition-colors duration-500 ${changedFields.includes('gender') ? 'bg-tcm-gold/30 text-black' : ''}`}>{persona.gender}</span>
-                  <span className={`bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-medium transition-colors duration-500 ${changedFields.includes('age') ? 'bg-tcm-gold/30 text-black' : ''}`}>{persona.age !== 'Unknown' ? `${persona.age} 岁` : '年龄?'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-2">
-                 <span className="text-xs font-bold uppercase text-gray-400">健康活力</span>
-                 <span className="text-sm font-bold text-tcm-gold">{healthScore}/100</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div className="bg-gradient-to-r from-tcm-lightGreen to-tcm-darkGreen h-2 rounded-full transition-all duration-1000" style={{ width: `${healthScore}%` }}></div>
-              </div>
-            </div>
-
-            {/* Profile Details */}
-            <div className="space-y-1 relative">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-serif-sc font-bold text-tcm-darkGreen border-l-4 border-tcm-gold pl-2">患者档案</h4>
-                {isPersonaAnalyzing && (
-                  <div className="flex items-center gap-1 text-xs text-tcm-gold animate-pulse">
-                    <Icons.BrainCircuit size={14} className="animate-spin" />
-                    更新中...
-                  </div>
-                )}
-              </div>
-              <div className="bg-tcm-cream/30 p-4 rounded-xl border border-tcm-gold/10 space-y-4">
-                 <InfoItem fieldKey="chiefComplaint" label="主诉" value={persona.chiefComplaint} icon={Icons.Activity} />
-                 <InfoItem fieldKey="suspectedDiagnosis" label="疑似诊断" value={persona.suspectedDiagnosis} icon={Icons.Stethoscope} />
-                 <InfoItem fieldKey="medicalHistory" label="病史" value={persona.medicalHistory} icon={Icons.FileText} />
-                 <InfoItem fieldKey="contraindications" label="禁忌症" value={persona.contraindications} icon={Icons.ShieldPlus} isAlert={true} />
-                 <div className={`pt-2 border-t border-tcm-gold/20 mt-2 transition-all duration-500 ${changedFields.includes('recommendedTreatment') ? 'scale-105' : ''}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icons.Leaf size={14} className="text-tcm-gold" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-gray-400">推荐护理</span>
+             {/* Attachment Preview */}
+             {attachments.length > 0 && (
+               <div className="flex gap-2 px-4 pb-2">
+                 {attachments.map((att, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={att.previewUrl} alt="preview" className="h-12 w-12 rounded object-cover border border-gray-200 dark:border-gray-600" />
+                      <button
+                        onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                        className="absolute -top-1 -right-1 bg-gray-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Icons.X size={10} />
+                      </button>
                     </div>
-                    <div className={`text-sm text-tcm-darkGreen bg-white p-3 rounded-lg border border-gray-100 shadow-sm leading-relaxed italic font-serif-sc transition-colors duration-1000 ${changedFields.includes('recommendedTreatment') ? 'bg-tcm-gold/10 border-tcm-gold/50' : ''}`}>
-                      "{persona.recommendedTreatment}"
+                 ))}
+               </div>
+             )}
+          </div>
+          <div className="text-center text-xs text-gray-400 mt-2">
+            RenShu AI may display inaccurate info, including about people, so double-check its responses.
+          </div>
+        </div>
+
+      </main>
+
+      {/* 3. RIGHT SIDEBAR: Health Profile (Existing) */}
+      <aside className={`${showRightSidebar ? 'w-80' : 'w-0'} flex-shrink-0 flex flex-col ${isDarkMode ? 'glass-panel-dark' : 'glass-panel'} border-l border-white/50 dark:border-white/10 z-20 shadow-xl transition-all duration-500 overflow-hidden`}>
+        {/* Header Logo Area */}
+        <div className="h-16 flex-shrink-0 flex items-center px-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/10">
+           <Icons.Leaf className="text-tcm-lightGreen mr-3" size={24} />
+           <div className="overflow-hidden">
+             <h1 className="text-lg font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc tracking-wide whitespace-nowrap">Health Profile</h1>
+           </div>
+        </div>
+
+        {/* Dynamic User Persona Visualization */}
+        <div className="flex-1 overflow-y-auto p-6 relative w-80">
+           <div className="space-y-4 relative z-10">
+              {/* Health Score Card */}
+              <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-white dark:border-white/10 shadow-sm backdrop-blur-sm">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Wellness Score</span>
+                  <span className="text-3xl font-serif-sc font-bold text-tcm-darkGreen dark:text-tcm-lightGreen">{healthScore}</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-tcm-lightGreen to-tcm-gold transition-all duration-1000" style={{width: `${healthScore}%`}}></div>
+                </div>
+              </div>
+
+              {/* Persona Fields */}
+              {(Object.keys(persona) as Array<keyof UserPersona>).map((key) => (
+                <div
+                  key={key}
+                  className={`p-3 rounded-lg border transition-all duration-700 ${
+                    changedFields.includes(key) 
+                      ? 'bg-tcm-gold/20 border-tcm-gold transform scale-105' 
+                      : 'bg-white/40 dark:bg-white/5 border-transparent hover:border-tcm-lightGreen/30'
+                  }`}
+                >
+                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                    {changedFields.includes(key) && <span className="w-2 h-2 bg-tcm-accent rounded-full animate-ping"></span>}
+                  </div>
+                  <div className="font-serif-sc text-tcm-darkGreen dark:text-tcm-cream text-sm font-medium leading-relaxed">
+                    {persona[key] || "Unknown"}
+                  </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      </aside>
+
+      {/* Edit Profile Modal (Existing) */}
+      {isEditingProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white dark:bg-tcm-charcoal rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                 <h2 className="text-xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">Edit Health Profile</h2>
+                 <button onClick={() => setIsEditingProfile(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><Icons.X /></button>
+              </div>
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Age</label>
+                      <input type="text" value={editPersonaForm.age} onChange={e => setEditPersonaForm({...editPersonaForm, age: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Gender</label>
+                      <input type="text" value={editPersonaForm.gender} onChange={e => setEditPersonaForm({...editPersonaForm, gender: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
                     </div>
                  </div>
+                 <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Medical History</label>
+                    <textarea value={editPersonaForm.medicalHistory} onChange={e => setEditPersonaForm({...editPersonaForm, medicalHistory: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg h-24 dark:text-white" />
+                 </div>
               </div>
-            </div>
-          </div>
-        </aside>
-      </div>
+              <div className="p-6 bg-gray-50 dark:bg-black/10 flex justify-end gap-3">
+                 <button onClick={() => setIsEditingProfile(false)} className="px-6 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5 rounded-lg">Cancel</button>
+                 <button onClick={() => { setPersona(editPersonaForm); setIsEditingProfile(false); }} className="px-6 py-2 bg-tcm-darkGreen text-white rounded-lg hover:bg-tcm-lightGreen">Save Changes</button>
+              </div>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 };

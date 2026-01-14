@@ -35,20 +35,20 @@ export const createProfessionalChat = (modelId: string = 'gemini-3-pro-preview')
     model: modelId,
     config: {
       systemInstruction: PROFESSIONAL_SYSTEM_INSTRUCTION,
-      temperature: 0.3, 
+      temperature: 0.3,
     },
   });
 };
 
 export const sendMessageWithConfig = async (
-  chat: Chat, 
-  message: string, 
+  chat: Chat,
+  message: string,
   files: Array<{data: string, mimeType: string}> = [],
   options: { enableThinking: boolean; enableSearch: boolean }
 ) => {
-  
+
   const config: any = {};
-  
+
   // Thinking Config (Only for models that support it, but we assume UI handles model selection)
   if (options.enableThinking) {
     config.thinkingConfig = { thinkingBudget: 1024 }; // default budget
@@ -61,7 +61,7 @@ export const sendMessageWithConfig = async (
 
   // Construct Content
   const parts: Part[] = [];
-  
+
   // Add Files
   files.forEach(file => {
     parts.push({
@@ -119,9 +119,9 @@ export const analyzeUserPersona = async (text: string, currentPersona: UserPerso
         responseMimeType: "application/json"
       }
     });
-    
+
     const newData = JSON.parse(response.text || "{}");
-    
+
     // Ensure we merge correctly to avoid losing data if the model returns partials (though prompt asks for full)
     return { ...currentPersona, ...newData };
   } catch (e) {
@@ -133,7 +133,7 @@ export const analyzeUserPersona = async (text: string, currentPersona: UserPerso
 // Helper for Medical Report Analysis
 export const analyzeMedicalReport = async (text: string, imageData?: string, mimeType?: string): Promise<string> => {
    const parts: Part[] = [];
-   
+
    if (imageData && mimeType) {
        parts.push({
            inlineData: { data: imageData, mimeType: mimeType }
@@ -151,7 +151,7 @@ export const analyzeMedicalReport = async (text: string, imageData?: string, mim
      
      Context/Notes from Doctor: ${text || "None provided."}
    `;
-   
+
    parts.push({ text: promptText });
 
    try {
