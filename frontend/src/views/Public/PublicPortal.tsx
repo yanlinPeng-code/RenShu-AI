@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { User, ChatMessage, UserPersona, AVAILABLE_MODELS, AIModelConfig } from '../../types/types';
+import { User, ChatMessage, UserPersona, AIModelConfig, AVAILABLE_MODELS } from '../../types';
 import { Icons } from '../../components/common/Icons';
 import { BrandLogo } from '../../components/common/BrandLogo';
 import { createPublicChat, analyzeUserPersona, sendMessageWithConfig } from '../../services/geminiService';
@@ -26,10 +26,10 @@ interface ChatSession {
 // Helper to group sessions by date
 const groupSessionsByDate = (sessions: ChatSession[]) => {
   const groups: { [key: string]: ChatSession[] } = {
-    'Today': [],
-    'Yesterday': [],
-    'Previous 7 Days': [],
-    'Older': []
+    '今天': [],
+    '昨天': [],
+    '最近7天': [],
+    '更早': []
   };
 
   const now = new Date();
@@ -44,13 +44,13 @@ const groupSessionsByDate = (sessions: ChatSession[]) => {
     const sessionDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
     if (sessionDate.getTime() === today.getTime()) {
-      groups['Today'].push(session);
+      groups['今天'].push(session);
     } else if (sessionDate.getTime() === yesterday.getTime()) {
-      groups['Yesterday'].push(session);
+      groups['昨天'].push(session);
     } else if (sessionDate > lastWeek) {
-      groups['Previous 7 Days'].push(session);
+      groups['最近7天'].push(session);
     } else {
-      groups['Older'].push(session);
+      groups['更早'].push(session);
     }
   });
 
@@ -64,24 +64,24 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
   const [sessions, setSessions] = useState<ChatSession[]>([
     {
       id: 'init-1',
-      title: 'Welcome Session',
+      title: '新的会话',
       messages: [{
         id: 'welcome',
         role: 'model',
-        text: `Hello ${user.name}. How can I assist you with your health today?`,
+        text: `你好 ${user.name}. 我是仁义AI健康助手,我可以为你提供健康咨询和建议。`,
         timestamp: new Date()
       }],
       lastModified: new Date()
     },
     {
       id: 'hist-1',
-      title: 'Headache analysis',
+      title: '头痛分析',
       messages: [],
       lastModified: new Date(Date.now() - 86400000) // Yesterday
     },
     {
       id: 'hist-2',
-      title: 'Dietary plan for spring',
+      title: '春季饮食计划',
       messages: [],
       lastModified: new Date(Date.now() - 172800000) // 2 days ago
     }
@@ -118,13 +118,13 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
     return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   const [persona, setPersona] = useState<UserPersona>(user.persona || {
-    age: 'Unknown',
-    gender: 'Unknown',
-    chiefComplaint: 'Pending...',
-    medicalHistory: 'None recorded',
-    suspectedDiagnosis: 'Analysis pending',
-    contraindications: 'None known',
-    recommendedTreatment: 'Wellness advice'
+    age: '18',
+    gender: '男',
+    chiefComplaint: '待分析...',
+    medicalHistory: '无记录',
+    suspectedDiagnosis: '分析待定',
+    contraindications: '无禁忌',
+    recommendedTreatment: ' wellness 建议'
   });
   const [editPersonaForm, setEditPersonaForm] = useState<UserPersona>(persona);
   const [changedFields, setChangedFields] = useState<string[]>([]);

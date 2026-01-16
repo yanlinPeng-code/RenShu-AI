@@ -29,6 +29,7 @@ class SystemConfig(SQLModel, table=True):
     __table_args__ = (
         Index("idx_system_configs_config_key", "config_key"),
         Index("idx_system_configs_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     @field_validator('config_type')

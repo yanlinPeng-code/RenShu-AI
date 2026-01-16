@@ -3,17 +3,13 @@ import os
 
 from  fastapi import  FastAPI
 from starlette.middleware.cors import CORSMiddleware
-
-
 from app.src.response.exception.global_exception import GlobalReOrExHandler
 from app.src.common.config.prosgresql_config import async_db_manager
 from app.src.response.response_middleware import ResponseMiddleware
-from app.src.core.middleware import AuthContextMiddleware
-from app.src.utils import get_logger, setup_structlog
+from app.src.utils import get_logger
 from app.src.controller import user_router, admin_router, model_config_router
-# 设置 structlog 系统
-environment = os.getenv("ENVIRONMENT", "development")
-setup_structlog(environment)
+from app.src.middleware.auth_middleware import AuthContextMiddleware
+from app.src.common.config.prosgresql_config import create_db_tables
 
 # 创建日志记录器
 logger = get_logger("app")
@@ -40,14 +36,8 @@ def add_middleware(app: FastAPI):
     )
     # 添加认证上下文中间件（自动解析JWT并设置用户上下文）
     app.add_middleware(AuthContextMiddleware)
-    # 添加日志中间件
-    # app.add_middleware(StructlogMiddleware,
-    #                    enable_request_logging=True,
-    #                    enable_performance_logging=True)
-    # app.add_middleware(BusinessLoggingMiddleware)
-    # app.add_middleware(PerformanceLoggingMiddleware, slow_request_threshold=1000.0)
-    # app.add_middleware(SecurityLoggingMiddleware)
-    #
+
+
 
 
 async  def init_resource():
@@ -57,6 +47,7 @@ async  def init_resource():
 
       await async_db_manager.init()
       # await model_manager_init.init()
+      # await create_db_tables()
       # await preload_all_on_startup()
       logger.info("注册数据库完成")
 

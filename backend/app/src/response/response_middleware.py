@@ -2,155 +2,85 @@
 响应中间件
 
 提供统一的响应处理中间件，支持请求ID生成、链路追踪等功能。
+使用纯 ASGI 中间件实现，避免 BaseHTTPMiddleware 的事务问题。
 """
 
 import uuid
 import time
-from typing import Callable, Optional
-from fastapi import Request, Response
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from .response_factory import response_factory
-from app.src.response.exception.exceptions import APIException
-from .response_models import BaseResponse
+from typing import Optional
+from starlette.types import ASGIApp, Receive, Send, Scope, Message
 
 
-class ResponseMiddleware(BaseHTTPMiddleware):
-    """响应处理中间件"""
+class ResponseMiddleware:
+    """
+    纯 ASGI 响应处理中间件
 
-    def __init__(self, app, enable_tracing: bool = True, enable_request_id: bool = True):
-        super().__init__(app)
+    优势：
+    1. 不会干扰 FastAPI 依赖注入的生命周期
+    2. 事务在响应完全发送后才提交
+    3. 更好的性能（无额外的响应体缓冲）
+    """
+
+    def __init__(self, app: ASGIApp, enable_tracing: bool = True, enable_request_id: bool = True):
+        self.app = app
         self.enable_tracing = enable_tracing
         self.enable_request_id = enable_request_id
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """处理请求和响应"""
-        # 生成请求ID
-        request_id = self._generate_request_id() if self.enable_request_id else None
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        # 只处理 HTTP 请求
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-        # 获取客户端IP地址
-        client_ip = self._get_client_ip(request)
-
-        # 记录请求开始时间
+        # 生成请求ID和获取客户端IP
+        request_id = str(uuid.uuid4()) if self.enable_request_id else None
+        client_ip = self._get_client_ip(scope)
         start_time = time.time()
 
-        # 将ID添加到请求状态中
-        request.state.request_id = request_id
-        request.state.client_ip = client_ip
+        # 将信息存储到 scope 的 state 中
+        if "state" not in scope:
+            scope["state"] = {}
+        scope["state"]["request_id"] = request_id
+        scope["state"]["client_ip"] = client_ip
 
-        try:
-            # 处理请求
-            response = await call_next(request)
+        async def send_wrapper(message: Message) -> None:
+            """包装 send 函数，添加响应头"""
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                if request_id:
+                    headers.append((b"x-request-id", request_id.encode()))
+                if client_ip:
+                    headers.append((b"x-client-ip", client_ip.encode()))
+                message = {**message, "headers": headers}
 
-            # 处理响应
-            if isinstance(response, JSONResponse):
-                # 明确的JSONResponse
-                response = await self._process_json_response(response, request_id, client_ip)
-            else:
-                print("Response is not JSONResponse")
-                # 对于非JSON响应，我们也确保添加必要的头部信息
-                response = await self._process_general_response(response, request_id, client_ip)
+            elif message["type"] == "http.response.body":
+                # 响应体发送完成后记录处理时间
+                if not message.get("more_body", False):
+                    process_time = time.time() - start_time
+                    print(f"Request {request_id} processed in {process_time:.3f}s")
 
-            return response
+            await send(message)
 
-        except APIException as e:
-            # 处理API异常
-            error_response = response_factory.from_exception(e, request_id, client_ip)
-            return JSONResponse(
-                status_code=e.code,
-                content=error_response.dict()
-            )
-        except Exception as e:
-            # 处理其他异常
-            error_response = response_factory.error(
-                code=500,
-                message="服务器内部错误",
-                error_code="INTERNAL_ERROR",
-                details={"exception": str(e)},
-                retryable=False,
-                request_id=request_id,
-                host_id=client_ip
-            )
-            return JSONResponse(
-                status_code=500,
-                content=error_response.dict()
-            )
-        finally:
-            # 记录处理时间
-            process_time = time.time() - start_time
-            if hasattr(request.state, 'request_id'):
-                print(f"Request {request.state.request_id} processed in {process_time:.3f}s")
+        await self.app(scope, receive, send_wrapper)
 
-    def _generate_request_id(self) -> str:
-        """生成请求ID"""
-        return str(uuid.uuid4())
+    def _get_client_ip(self, scope: Scope) -> Optional[str]:
+        """从 scope 获取客户端IP"""
+        # 从 client 获取
+        client = scope.get("client")
+        if client:
+            return client[0]
 
-    def _get_client_ip(self, request: Request) -> Optional[str]:
-        """获取客户端IP地址"""
-        # 尝试从不同的头部获取IP地址
-        if request.client and request.client.host:
-            return request.client.host
-
-        # 如果没有request.client，尝试从头部获取
-        forwarded = request.headers.get("X-Forwarded-For")
+        # 从 headers 获取
+        headers = dict(scope.get("headers", []))
+        forwarded = headers.get(b"x-forwarded-for")
         if forwarded:
-            return forwarded.split(",")[0].strip()
+            return forwarded.decode().split(",")[0].strip()
 
-        real_ip = request.headers.get("X-Real-IP")
+        real_ip = headers.get(b"x-real-ip")
         if real_ip:
-            return real_ip
+            return real_ip.decode()
 
         return None
-
-    async def _process_json_response(self, response: Response,
-                                   request_id: Optional[str],
-                                   client_ip: Optional[str]) -> Response:
-        """处理JSON响应"""
-        try:
-            # 获取响应体内容
-            if hasattr(response, 'body') and response.body:
-                content = response.body.decode('utf-8')
-            else:
-                # 如果没有body属性，可能需要特殊处理
-                return response
-
-            import json
-            data = json.loads(content)
-
-            # 确保所有响应都包含RequestId和HostId
-            if isinstance(data, dict):
-                # 更新或添加RequestId字段
-                # 如果当前RequestId为空或不存在，则使用生成的request_id
-                if not data.get('RequestId'):
-                    data['RequestId'] = request_id or ""
-
-                # 更新或添加HostId字段
-                # 如果当前HostId为null或不存在，则使用client_ip
-                if 'HostId' not in data or data['HostId'] is None:
-                    data['HostId'] = client_ip
-
-                # 重新编码响应
-                response.body = json.dumps(data, ensure_ascii=False).encode('utf-8')
-                # 更新Content-Length头部
-                response.headers["content-length"] = str(len(response.body))
-
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            # 如果解析失败，保持原响应不变
-            pass
-
-        return response
-
-    async def _process_general_response(self, response: Response,
-                                      request_id: Optional[str],
-                                      client_ip: Optional[str]) -> Response:
-        """处理通用响应"""
-        # 为所有响应添加自定义头部
-        if request_id:
-            response.headers['X-Request-ID'] = request_id
-        if client_ip:
-            response.headers['X-Client-IP'] = client_ip
-
-        return response
 
 
 class RequestContextMiddleware:

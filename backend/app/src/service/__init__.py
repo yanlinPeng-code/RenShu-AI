@@ -5,6 +5,6 @@
 """
 
 from .user_service import UserService
-from backend.app.src.utils.auth_service import AuthService
 
-__all__ = ["UserService", "AuthService"]
+
+__all__ = ["UserService"]

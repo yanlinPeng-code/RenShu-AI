@@ -7,6 +7,8 @@ from sqlalchemy import delete as sa_delete
 
 from app.src.response.utils import paginated
 
+from app.src.common.config.prosgresql_config import async_db_manager
+
 ModelType=TypeVar("ModelType", bound=SQLModel)
 
 class BaseService(Generic[ModelType]):
@@ -144,7 +146,6 @@ class BaseService(Generic[ModelType]):
                 total=total,
 
             )
-
 
 
 

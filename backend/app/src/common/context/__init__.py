@@ -2,7 +2,7 @@
 请求上下文模块
 """
 
-from app.src.core.context.request_context import (
+from app.src.common.context.request_context import (
     UserContext,
     get_current_context,
     set_current_context,

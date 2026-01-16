@@ -110,14 +110,11 @@
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field, Relationship, Index, Column
 from sqlalchemy import JSON
 from pydantic import field_validator, ConfigDict
 import json
-
-from app.src.model import User
 
 
 class Conversation(SQLModel, table=True):
@@ -134,7 +131,8 @@ class Conversation(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.now, description="更新时间")
 
 
-    user: "User" =Relationship(back_populates="conversations")
+    messages: List["Message"] = Relationship()
+
     # Table indexes
     __table_args__ = (
         Index("idx_conversations_user_id", "user_id"),
@@ -142,6 +140,7 @@ class Conversation(SQLModel, table=True):
         Index("idx_conversations_conversation_type", "conversation_type"),
         Index("idx_conversations_status", "status"),
         Index("idx_conversations_created_at", "created_at"),
+        {"extend_existing": True}
     )
 
     @field_validator('conversation_type')
@@ -185,13 +184,13 @@ class Message(SQLModel, table=True):
     is_deleted: bool = Field(default=False, description="是否删除")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
 
-    conversations: Conversation = Relationship(back_populates="messages")
     # Table indexes
     __table_args__ = (
         Index("idx_messages_conversation_id", "conversation_id"),
         Index("idx_messages_role", "role"),
         Index("idx_messages_message_type", "message_type"),
         Index("idx_messages_created_at", "created_at"),
+        {"extend_existing": True}
     )
 
     @field_validator('role')

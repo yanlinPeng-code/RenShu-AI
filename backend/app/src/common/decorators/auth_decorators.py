@@ -7,7 +7,7 @@ from functools import wraps
 from typing import Callable, Any, TypeVar, Optional
 from fastapi import HTTPException
 
-from app.src.core.context.request_context import (
+from app.src.common.context.request_context import (
     get_current_context,
     get_current_user_id,
     is_authenticated,

@@ -43,6 +43,7 @@ class Herb(SQLModel, table=True):
         Index("idx_herbs_category", "category"),
         Index("idx_herbs_nature", "nature"),
         Index("idx_herbs_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     @field_validator('nature')
@@ -96,6 +97,7 @@ class HerbInventory(SQLModel, table=True):
         Index("idx_herb_inventory_batch_number", "batch_number"),
         Index("idx_herb_inventory_status", "status"),
         Index("idx_herb_inventory_expiry_date", "expiry_date"),
+        {"extend_existing": True}
     )
     
     @field_validator('status')
@@ -149,6 +151,7 @@ class Prescription(SQLModel, table=True):
         Index("idx_prescriptions_source", "source"),
         Index("idx_prescriptions_category", "category"),
         Index("idx_prescriptions_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -185,6 +188,7 @@ class ClassicText(SQLModel, table=True):
         Index("idx_classic_texts_chapter", "chapter"),
         Index("idx_classic_texts_article_number", "article_number"),
         Index("idx_classic_texts_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(

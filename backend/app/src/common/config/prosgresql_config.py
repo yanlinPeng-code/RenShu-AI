@@ -1,6 +1,5 @@
 import contextlib
 from typing import Optional, AsyncGenerator, Generator, Annotated
-
 from fastapi import Depends
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
@@ -9,19 +8,19 @@ from sqlalchemy.orm import (
     sessionmaker,
     Session as SyncSession,
 )
+from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from app.src.common.config.setting_config import settings
-from app.src.utils import get_logger
+from app.src.utils.logs.logger import get_logger
 
 # 创建日志记录器
-logger = get_logger("prosgresql_config")
+logger = get_logger("sql")
 # 共享的基础模型类
 Base = declarative_base()
 
 
 class PostgreSQLAsyncSessionManager:
-    """管理异步的PostgreSQL Session和连接池"""
+    """管理异步的PostgreSQL Session和连接池（修复版）"""
 
     def __init__(self):
         self.async_engine: Optional[AsyncEngine] = None
@@ -37,7 +36,8 @@ class PostgreSQLAsyncSessionManager:
             echo=settings.POSTGRESQL_ECHO,
             max_overflow=settings.POSTGRESQL_MAX_OVERFLOW,
             pool_recycle=settings.POSTGRESQL_POOL_RECYCLE,
-            pool_pre_ping=True
+            pool_timeout=settings.POSTGRESQL_POOL_TIMEOUT,
+            pool_pre_ping=True  # 健康检查：确保连接可用
         )
         logger.info("--------------PostgreSQL异步引擎创建成功----------------")
         print(f"异步连接URL: {settings.async_connection_url}")
@@ -45,8 +45,9 @@ class PostgreSQLAsyncSessionManager:
         self.async_session_factory = async_sessionmaker(
             bind=self.async_engine,
             class_=AsyncSession,
-            expire_on_commit=False,
-            autoflush=False
+            expire_on_commit=False,  # 提交后不失效对象（避免重复查询）
+            autoflush=False,  # 关闭自动刷新（手动控制更安全）
+            autocommit=False  # 事务手动控制
         )
         logger.info("---------------异步会话工厂创建成功----------------")
 
@@ -59,26 +60,31 @@ class PostgreSQLAsyncSessionManager:
 
     @contextlib.asynccontextmanager
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
-        """获取事务安全的异步session"""
         if self.async_session_factory is None:
-            raise Exception("-----------请先初始化异步数据库连接！------------")
+            await self.init()
 
-        async with self.async_session_factory() as session:
+        session = self.async_session_factory()
+        try:
+            # 使用 session.begin() 开启事务上下文
+            # 它会自动处理 commit (成功时) 和 rollback (异常时)
+            # 并且能正确处理 BaseException
             async with session.begin():
-                try:
-                    yield session
-                    await session.commit()
-                except Exception as e:
-                    await session.rollback()
-                    logger.error(f"异步数据库会话出错: {str(e)}")
-                    raise
-                finally:
+                logger.debug(f"🔄 开启新事务，会话ID: {id(session)}")
+                yield session
 
-                    await session.close()
+            # 注意：离开 async with session.begin() 块时会自动 commit
+            logger.debug(f"✅ 事务自动提交成功，会话ID: {id(session)}")
 
+        except Exception as e:
+            # 这里的 rollback 是多重保险，session.begin 已经处理了
+            logger.error(f"❌ 数据库事务失败: {str(e)}", exc_info=True)
+            raise
+        finally:
+            await session.close()
+            logger.debug(f"🔌 会话已关闭，ID: {id(session)}")
 
 class PostgreSQLSyncSessionManager:
-    """管理同步的PostgreSQL Session和连接池"""
+    """管理同步的PostgreSQL Session和连接池（修复版）"""
 
     def __init__(self):
         self.engine: Optional[Engine] = None
@@ -94,6 +100,7 @@ class PostgreSQLSyncSessionManager:
             echo=settings.POSTGRESQL_ECHO,
             max_overflow=settings.POSTGRESQL_MAX_OVERFLOW,
             pool_recycle=settings.POSTGRESQL_POOL_RECYCLE,
+            pool_timeout=settings.POSTGRESQL_POOL_TIMEOUT,
             pool_pre_ping=True
         )
         logger.info("--------------PostgreSQL同步引擎创建成功----------------")
@@ -103,7 +110,8 @@ class PostgreSQLSyncSessionManager:
             bind=self.engine,
             class_=SyncSession,
             expire_on_commit=False,
-            autoflush=False
+            autoflush=False,
+            autocommit=False
         )
         logger.info("---------------同步会话工厂创建成功----------------")
 
@@ -116,21 +124,19 @@ class PostgreSQLSyncSessionManager:
 
     @contextlib.contextmanager
     def get_session(self) -> Generator[SyncSession, None, None]:
-        """获取事务安全的同步session"""
+        """获取事务安全的同步session（修复核心逻辑）"""
         if self.session_factory is None:
             raise Exception("-----------请先初始化同步数据库连接！------------")
 
-        session = self.session_factory()
-        transaction = session.begin()
-        try:
-            yield session
-            transaction.commit()
-        except Exception as e:
-            transaction.rollback()
-            logger.error(f"同步数据库会话出错: {str(e)}")
-            raise
-        finally:
-            session.close()
+        with self.session_factory() as session:
+            try:
+                session.begin()  # 开启事务
+                yield session
+            except Exception as e:
+                session.rollback()
+                logger.error(f"同步数据库会话出错，已回滚: {str(e)}", exc_info=True)
+                raise
+            # 无异常时，上下文自动commit；无需手动close（with已处理）
 
 
 # 实例化管理器
@@ -138,7 +144,7 @@ async_db_manager = PostgreSQLAsyncSessionManager()
 sync_db_manager = PostgreSQLSyncSessionManager()
 
 
-# 异步会话依赖
+# 异步会话依赖（FastAPI使用）
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_db_manager.get_session() as session:
         yield session
@@ -147,7 +153,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
-# 同步会话依赖
+# 同步会话依赖（FastAPI使用）
 def get_sync_db() -> Generator[SyncSession, None, None]:
     with sync_db_manager.get_session() as session:
         yield session
@@ -167,3 +173,59 @@ async def close_dbs():
     """关闭所有数据库连接"""
     await async_db_manager.close()
     sync_db_manager.close()
+
+
+async def create_db_tables():
+    """创建所有 SQLModel 表（如果不存在）"""
+    # 导入模型以确保它们被注册到 SQLModel.metadata
+    # 从统一入口导入所有模型
+    from app.src.model import (
+        # 用户相关模型
+        User, Patient, UserSession, UserState, UserActivity, RefreshToken,
+        # 对话相关模型
+        Conversation, Message,
+        # 医疗相关模型
+        MedicalCase, Symptom, Syndrome, MedicalRecord, TongueAnalysis,
+        PrescriptionRecommendation,
+        # 药材相关模型
+        Herb, HerbInventory, Prescription, ClassicText,
+        # 系统相关模型
+        SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
+        AuditLog, BackupInfo, SystemInfo
+    )
+
+    if async_db_manager.async_engine is None:
+        raise Exception("请先初始化数据库连接")
+
+    async with async_db_manager.async_engine.begin() as conn:
+        # 使用 checkfirst 参数只创建不存在的表，避免重复创建
+        await conn.run_sync(lambda sync_conn: SQLModel.metadata.create_all(sync_conn, checkfirst=True))
+        logger.info("数据库表创建/检查完成")
+
+
+async def drop_db_tables():
+    """删除所有 SQLModel 表"""
+    # 导入模型以确保它们被注册到 SQLModel.metadata
+    # 从统一入口导入所有模型
+    from app.src.model import (
+        # 用户相关模型
+        User, Patient, UserSession, UserState, UserActivity, RefreshToken,
+        # 对话相关模型
+        Conversation, Message,
+        # 医疗相关模型
+        MedicalCase, Symptom, Syndrome, MedicalRecord, TongueAnalysis,
+        PrescriptionRecommendation,
+        # 药材相关模型
+        Herb, HerbInventory, Prescription, ClassicText,
+        # 系统相关模型
+        SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
+        AuditLog, BackupInfo, SystemInfo
+    )
+
+    if async_db_manager.async_engine is None:
+        raise Exception("请先初始化数据库连接")
+
+    async with async_db_manager.async_engine.begin() as conn:
+        # 删除所有表
+        await conn.run_sync(lambda sync_conn: SQLModel.metadata.drop_all(sync_conn))
+        logger.info("数据库表删除成功")

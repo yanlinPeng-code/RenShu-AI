@@ -44,6 +44,7 @@ class MedicalCase(SQLModel, table=True):
         Index("idx_medical_cases_syndrome_type", "syndrome_type"),
         Index("idx_medical_cases_status", "status"),
         Index("idx_medical_cases_created_at", "created_at"),
+        {"extend_existing": True}
     )
     
     @field_validator('status')
@@ -90,6 +91,7 @@ class Symptom(SQLModel, table=True):
         Index("idx_symptoms_name", "name"),
         Index("idx_symptoms_category", "category"),
         Index("idx_symptoms_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -121,6 +123,7 @@ class Syndrome(SQLModel, table=True):
         Index("idx_syndromes_name", "name"),
         Index("idx_syndromes_category", "category"),
         Index("idx_syndromes_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -163,6 +166,7 @@ class MedicalRecord(SQLModel, table=True):
         Index("idx_medical_records_doctor_name", "doctor_name"),
         Index("idx_medical_records_hospital_name", "hospital_name"),
         Index("idx_medical_records_is_active", "is_active"),
+        {"extend_existing": True}
     )
     
     @field_validator('patient_gender')
@@ -203,6 +207,7 @@ class TongueAnalysis(SQLModel, table=True):
     __table_args__ = (
         Index("idx_tongue_analysis_user_id", "user_id"),
         Index("idx_tongue_analysis_created_at", "created_at"),
+        {"extend_existing": True}
     )
     
     @field_validator('confidence_score')
@@ -246,6 +251,7 @@ class PrescriptionRecommendation(SQLModel, table=True):
         Index("idx_prescription_recommendations_prescription_id", "prescription_id"),
         Index("idx_prescription_recommendations_status", "status"),
         Index("idx_prescription_recommendations_created_at", "created_at"),
+        {"extend_existing": True}
     )
     
     @field_validator('status')

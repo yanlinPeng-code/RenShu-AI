@@ -1,0 +1,137 @@
+[2026-01-14 23:47:48] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001F1BDE8FC40>>
+[2026-01-14 23:47:53] ERROR [asyncio] Task exception was never retrieved
+future: <Task finished name='Task-17' coro=<AsyncAdapt_asyncpg_connection._terminate_graceful_close() done, defined at D:\code\SmartTCM-Agent-SYSTEM\backend\.renyi\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:910> exception=TimeoutError()>
+[2026-01-14 23:48:10] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001F1BDE8FC40>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-14 23:50:21] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000025EA44CCC70>>
+[2026-01-14 23:53:44] ERROR [app] fastapi应用关闭
+[2026-01-14 23:53:44] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000025EA44CCC70>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-14 23:53:59] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x00000213E3E60D60>>
+[2026-01-14 23:54:45] ERROR [app] fastapi应用关闭
+[2026-01-14 23:54:45] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x00000213E3E60D60>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-14 23:56:41] ERROR [app] fastapi应用关闭
+[2026-01-14 23:58:53] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002818E746020>>
+[2026-01-15 00:00:44] ERROR [app] fastapi应用关闭
+[2026-01-15 00:00:44] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002818E746020>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 00:00:56] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000014F387C6F20>>
+[2026-01-15 00:05:45] ERROR [app] fastapi应用关闭
+[2026-01-15 00:05:45] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000014F387C6F20>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 00:05:57] ERROR [app] fastapi应用关闭
+[2026-01-15 00:07:34] ERROR [app] fastapi应用关闭
+[2026-01-15 09:46:51] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000024D1039F010>>
+[2026-01-15 09:48:48] ERROR [app] fastapi应用关闭
+[2026-01-15 09:49:01] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000028D9F8022F0>>
+[2026-01-15 09:53:51] ERROR [app] fastapi应用关闭
+[2026-01-15 09:53:51] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000028D9F8022F0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 09:58:51] ERROR [app] fastapi应用关闭
+[2026-01-15 10:08:48] ERROR [app] fastapi应用关闭
+[2026-01-15 10:09:36] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x00000269F769B2E0>>
+[2026-01-15 10:12:25] ERROR [app] fastapi应用关闭
+[2026-01-15 10:12:25] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x00000269F769B2E0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:13:37] ERROR [sql] 异步数据库会话出错: UserService.create_user() takes from 2 to 3 positional arguments but 4 were given
+[2026-01-15 10:13:54] ERROR [app] fastapi应用关闭
+[2026-01-15 10:15:15] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001ABBFF21F30>>
+[2026-01-15 10:15:22] ERROR [asyncio] Task exception was never retrieved
+future: <Task finished name='Task-15' coro=<AsyncAdapt_asyncpg_connection._terminate_graceful_close() done, defined at D:\code\SmartTCM-Agent-SYSTEM\backend\.renyi\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:910> exception=TimeoutError()>
+[2026-01-15 10:16:59] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002DD07931F30>>
+[2026-01-15 10:21:17] ERROR [app] fastapi应用关闭
+[2026-01-15 10:21:18] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002DD07931F30>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:22:34] ERROR [app] fastapi应用关闭
+[2026-01-15 10:26:17] ERROR [app] fastapi应用关闭
+[2026-01-15 10:27:17] ERROR [app] fastapi应用关闭
+[2026-01-15 10:32:18] ERROR [app] fastapi应用关闭
+[2026-01-15 10:32:32] ERROR [app] fastapi应用关闭
+[2026-01-15 10:33:05] ERROR [UserService] 记录用户活动失败: '_AsyncGeneratorContextManager' object has no attribute 'add', user_id=c19c4d4f-8f7a-46bb-ba20-6f37fabf5376, activity_type=register
+[2026-01-15 10:33:05] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001D3785CF010>>
+[2026-01-15 10:33:38] ERROR [app] fastapi应用关闭
+[2026-01-15 10:34:00] ERROR [UserService] 记录用户活动失败: 'NoneType' object is not callable, user_id=eb0cd4da-8a1a-4cb9-83e2-c0735be18c71, activity_type=register
+[2026-01-15 10:34:00] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000028C579F22F0>>
+[2026-01-15 10:35:53] ERROR [app] fastapi应用关闭
+[2026-01-15 10:35:53] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000028C579F22F0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:36:04] ERROR [UserService] 记录用户活动失败: 'coroutine' object does not support the asynchronous context manager protocol, user_id=9be514bc-b359-40c8-aefd-e51423c1467c, activity_type=register
+[2026-01-15 10:36:04] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000029F7A1923E0>>
+[2026-01-15 10:36:48] ERROR [app] fastapi应用关闭
+[2026-01-15 10:36:48] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000029F7A1923E0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:37:00] ERROR [UserService] 记录用户活动失败: 'NoneType' object is not callable, user_id=d3ef5429-c3ba-47ad-aa00-fc102451a706, activity_type=register
+[2026-01-15 10:37:00] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000024C501423E0>>
+[2026-01-15 10:39:31] ERROR [app] fastapi应用关闭
+[2026-01-15 10:39:31] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000024C501423E0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:39:52] ERROR [UserService] 记录用户活动失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table "user_activities" violates foreign key constraint "user_activities_user_id_fkey"
+DETAIL:  Key (user_id)=(251ab437-2225-43ef-943d-34e1ab3501d9) is not present in table "users".
+[SQL: INSERT INTO user_activities (id, user_id, session_id, activity_type, activity_data, ip_address, user_agent, resource, created_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::JSON, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('68fc69ca-4a4d-425d-a7e6-4687647c63a6'), UUID('251ab437-2225-43ef-943d-34e1ab3501d9'), None, 'register', '{}', '127.0.0.1', None, None, datetime.datetime(2026, 1, 15, 10, 39, 52, 887))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj), user_id=251ab437-2225-43ef-943d-34e1ab3501d9, activity_type=register
+[2026-01-15 10:39:52] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002C0416922F0>>
+[2026-01-15 10:44:32] ERROR [app] fastapi应用关闭
+[2026-01-15 10:44:32] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002C0416922F0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:48:09] ERROR [app] fastapi应用关闭
+[2026-01-15 10:48:16] ERROR [app] fastapi应用关闭
+[2026-01-15 10:52:06] ERROR [UserService] 记录用户活动失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table "user_activities" violates foreign key constraint "user_activities_user_id_fkey"
+DETAIL:  Key (user_id)=(cfe92ff2-d5d0-450d-b210-1ba1a6aa3ff8) is not present in table "users".
+[SQL: INSERT INTO user_activities (id, user_id, session_id, activity_type, activity_data, ip_address, user_agent, resource, created_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::JSON, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('a0880caf-9743-4734-ae71-ec4910bbc828'), UUID('cfe92ff2-d5d0-450d-b210-1ba1a6aa3ff8'), None, 'register', '{}', '127.0.0.1', None, None, datetime.datetime(2026, 1, 15, 10, 52, 6, 261462))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj), user_id=cfe92ff2-d5d0-450d-b210-1ba1a6aa3ff8, activity_type=register
+[2026-01-15 10:52:06] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000011D3B7C9120>>
+[2026-01-15 10:52:23] ERROR [app] fastapi应用关闭
+[2026-01-15 10:52:23] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000011D3B7C9120>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:56:47] ERROR [app] fastapi应用关闭
+[2026-01-15 10:57:01] ERROR [app] fastapi应用关闭
+[2026-01-15 10:57:13] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001C7FE162200>>
+[2026-01-15 10:59:03] ERROR [app] fastapi应用关闭
+[2026-01-15 10:59:03] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001C7FE162200>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 10:59:17] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001A73EE022F0>>
+[2026-01-15 11:04:03] ERROR [app] fastapi应用关闭
+[2026-01-15 11:04:03] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001A73EE022F0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 11:07:51] ERROR [app] fastapi应用关闭
+[2026-01-15 11:12:51] ERROR [app] fastapi应用关闭
+[2026-01-15 11:20:51] ERROR [app] fastapi应用关闭
+[2026-01-15 11:22:17] ERROR [app] fastapi应用关闭
+[2026-01-15 11:22:35] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000017F96122110>>
+[2026-01-15 11:25:55] ERROR [app] fastapi应用关闭
+[2026-01-15 11:25:55] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000017F96122110>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 11:26:23] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001C805CB2110>>
+[2026-01-15 11:32:29] ERROR [app] fastapi应用关闭
+[2026-01-15 11:32:30] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001C805CB2110>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 11:32:43] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001D2A9013100>>
+[2026-01-15 11:34:57] ERROR [app] fastapi应用关闭
+[2026-01-15 11:35:10] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000012DADCE6110>>
+[2026-01-15 11:36:16] ERROR [app] fastapi应用关闭
+[2026-01-15 11:36:42] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000021E66A06110>>
+[2026-01-15 11:37:27] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000021E66EA7B50>>
+[2026-01-15 11:37:57] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000026E459A54E0>>
+[2026-01-15 11:41:02] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000002644E471990>>
+[2026-01-15 11:43:50] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001D52AA9A5C0>>
+[2026-01-15 11:59:28] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x000001D1DFDC3100>>
+[2026-01-15 12:06:55] ERROR [app] fastapi应用关闭
+[2026-01-15 12:07:12] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000023F7F2C6110>>
+[2026-01-15 12:11:55] ERROR [app] fastapi应用关闭
+[2026-01-15 12:11:55] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000023F7F2C6110>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+[2026-01-15 12:16:55] ERROR [app] fastapi应用关闭
+[2026-01-15 12:32:50] ERROR [app] fastapi应用关闭
+[2026-01-15 12:33:04] ERROR [sqlalchemy.pool.impl.AsyncAdaptedQueuePool] Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x0000021389721A80>>
+[2026-01-15 12:36:37] ERROR [app] fastapi应用关闭
+[2026-01-15 12:38:23] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 12:38:23] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 12:38:34] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 12:38:34] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 12:38:41] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 12:38:41] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 12:38:47] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 12:38:47] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 12:38:53] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 12:38:53] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 12:38:56] ERROR [auth] Failed to create access token for user 11e6c857-1199-4966-9df8-519393ff9176: module 'jwt' has no attribute 'encode'
+[2026-01-15 12:38:56] ERROR [sql] ❌ 数据库事务失败: module 'jwt' has no attribute 'encode'
+[2026-01-15 12:38:56] CRITICAL [app] 未处理的异常: module 'jwt' has no attribute 'encode'
+[2026-01-15 12:38:59] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 12:38:59] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 12:40:48] ERROR [app] fastapi应用关闭
+[2026-01-15 12:41:38] ERROR [app] fastapi应用关闭
+[2026-01-15 12:46:38] ERROR [app] fastapi应用关闭
+[2026-01-15 12:51:38] ERROR [app] fastapi应用关闭
+[2026-01-15 13:04:17] ERROR [app] fastapi应用关闭
+[2026-01-15 15:21:47] ERROR [app] fastapi应用关闭
+[2026-01-15 18:50:42] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 18:50:42] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 18:50:47] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-15 18:50:47] ERROR [app] API异常: 用户名或密码错误
+[2026-01-15 21:24:56] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录

@@ -3,7 +3,7 @@ JSON Web Token
 """
 
 import jwt  # type: ignore
-# import PyJWT as jwt # type: ignore
+
 import bcrypt  # type: ignore
 import hashlib
 import secrets

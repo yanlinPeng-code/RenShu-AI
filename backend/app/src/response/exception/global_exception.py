@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from app.src.response.exception.exceptions import APIException, InternalServerException
 from app.src.response.response_factory import response_factory
 from app.src.response.response_middleware import request_context
-from app.src.utils import get_logger, set_request_context
+from app.src.utils import get_logger
 
 
 class GlobalReOrExHandler:
@@ -33,24 +33,13 @@ class GlobalReOrExHandler:
             # 生成请求ID
             request_id = str(uuid.uuid4())
             request_context.set_request_id(request_id)
-            set_request_context(request_id=request_id)
-            host_id = request.headers.get("host", "localhost")
             # 记录请求开始时间
-            start_time = time.time()
 
             # 处理请求
             response = await call_next(request)
             # 记录处理时间
-            process_time = time.time() - start_time
             self.logger.info(f"请求处理完成: {request.method} {request.url.path}",
-                        business_data={
-                            "type": "request_completed",
-                            "method": request.method,
-                            "path": str(request.url.path),
-                            "status_code": response.status_code,
-                            "process_time_ms": process_time * 1000
-                        },
-                        duration=process_time * 1000)
+                        )
 
             return response
 
@@ -63,14 +52,7 @@ class GlobalReOrExHandler:
         @self.app.exception_handler(APIException)
         async def api_exception_handler(request: Request, exc: APIException):
             """处理API异常"""
-            self.logger.error(f"API异常: {exc.message}",
-                         business_data={
-                             "type": "api_exception",
-                             "method": request.method,
-                             "path": str(request.url.path),
-                             "error_code": exc.error_code,
-                             "details": exc.details
-                         })
+            self.logger.error(f"API异常: {exc.message}")
             response = response_factory.from_exception(
                 exc,
                 request_id=request_context.get_request_id(),
@@ -86,14 +68,7 @@ class GlobalReOrExHandler:
         async def general_exception_handler(request: Request, exc: Exception):
             """处理通用异常"""
 
-            self.logger.critical(f"未处理的异常: {str(exc)}",
-                            business_data={
-                                "type": "unhandled_exception",
-                                "method": request.method,
-                                "path": str(request.url.path),
-                                "error": str(exc)
-                            },
-                            exc_info=True)
+            self.logger.critical(f"未处理的异常: {str(exc)}")
             # 包装为内部服务器异常
             wrapped_exc = InternalServerException(
                 message="服务器内部错误",

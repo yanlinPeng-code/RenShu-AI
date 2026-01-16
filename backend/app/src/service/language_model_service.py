@@ -18,8 +18,8 @@ from app.src.core.language_model.default_models import DEFAULT_PROVIDERS, DEFAUL
 
 from app.src.response.exception.exceptions import ResourceNotFoundException, BusinessException
 from app.src.service.base_service import BaseService
-from app.src.core.decorators import require_login, require_roles
-from app.src.core.context import get_current_user_id
+from app.src.common.decorators import require_login, require_roles
+from app.src.common.context import get_current_user_id
 
 from app.src.model.model_config_models import ModelProvider, ModelConfig, UserModelConfig
 from app.src.schema.model_config_schema import ModelProviderCreate, ModelProviderUpdate, ModelConfigCreate, \

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { User, ChatMessage, AVAILABLE_MODELS, AIModelConfig } from '../../types/types';
+import { User, ChatMessage, AVAILABLE_MODELS, AIModelConfig } from '../../types';
 import { Icons } from '../../components/common/Icons';
 import { BrandLogo } from '../../components/common/BrandLogo';
 import { createProfessionalChat, analyzeMedicalReport } from '../../services/geminiService';
@@ -71,7 +71,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   const [sessions, setSessions] = useState<ChatSession[]>([
     {
       id: 'init-1',
-      title: 'General Consultation',
+      title: 'General Consultation  ',
       messages: [{
         id: 'init',
         role: 'model',
@@ -291,11 +291,11 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
     <div className="w-full h-full p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 transition-colors">
       <div className="flex justify-between items-center mb-8">
         <div>
-           <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">Patient Management</h2>
-           <p className="text-gray-500 dark:text-gray-400 text-sm">Active cases and patient history</p>
+           <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">诊疗管理</h2>
+           <p className="text-gray-500 dark:text-gray-400 text-sm">当前病例和患者历史</p>
         </div>
         <button className="bg-tcm-darkGreen dark:bg-tcm-lightGreen text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-900 transition-colors">
-          <Icons.ShieldPlus size={18} /> Add New Patient
+          <Icons.ShieldPlus size={18} /> 添加新病例 
         </button>
       </div>
 
@@ -303,12 +303,12 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              <th className="p-4">Patient</th>
-              <th className="p-4">Age/Gender</th>
-              <th className="p-4">Diagnosis</th>
-              <th className="p-4">Last Visit</th>
-              <th className="p-4">Status</th>
-              <th className="p-4">Actions</th>
+              <th className="p-4">患者</th>
+              <th className="p-4">年龄/性别</th>
+              <th className="p-4">诊断</th>
+              <th className="p-4">最后访问</th>
+              <th className="p-4">状态</th>
+              <th className="p-4">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -376,11 +376,11 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
 
         {/* Left Column: Input */}
         <div className="w-full md:w-1/3 flex flex-col gap-4">
-          <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-2">Report Upload</h2>
+          <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-2">报告上传</h2>
 
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
              <div className="mb-4">
-               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Scan or Image</label>
+               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">上传报告</label>
                <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                  <input type="file" onChange={handleReportUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" />
                  {previewUrl ? (
@@ -388,14 +388,14 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
                  ) : (
                    <div className="text-gray-400 flex flex-col items-center">
                      <Icons.UploadCloud size={32} className="mb-2"/>
-                     <span className="text-sm">Click to upload image</span>
+                     <span className="text-sm">点击上传报告</span>
                    </div>
                  )}
                </div>
              </div>
 
              <div className="mb-4">
-               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Clinical Notes (Optional)</label>
+               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">临床笔记（可选）</label>
                <textarea
                  value={reportText}
                  onChange={(e) => setReportText(e.target.value)}
@@ -425,7 +425,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
 
         {/* Right Column: Results */}
         <div className="w-full md:w-2/3 flex flex-col">
-          <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-6">Interpretation Result</h2>
+          <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-6">分析结果</h2>
 
           <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 overflow-y-auto transition-colors">
              {analysisResult ? (
@@ -451,7 +451,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
 
   const RecordsView = () => (
     <div className="w-full h-full p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 transition-colors">
-      <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-6">Electronic Medical Records</h2>
+      <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-6">电子医疗记录</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1,2,3,4,5,6].map(i => (
           <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer group hover:border-tcm-gold/50">
@@ -461,10 +461,11 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
               </div>
               <button className="text-gray-300 hover:text-gray-500 dark:hover:text-gray-200"><Icons.Menu size={16}/></button>
             </div>
-            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-1">Case Record #{202300 + i}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Updated 2 hours ago</p>
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-1">病例记录  #{202300 + i}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">更新于 2 小时 前</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">2 小时 前更新</p>
             <div className="flex items-center gap-2 text-xs font-medium text-gray-400 group-hover:text-tcm-darkGreen dark:group-hover:text-tcm-lightGreen">
-              <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Cardiology</span>
+              <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Cardiology </span>
               <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Inpatient</span>
             </div>
           </div>
@@ -573,37 +574,37 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
           <NavItem
             icon={Icons.BrainCircuit}
-            label="AI Diagnosis"
+            label="AI诊断"
             isActive={activeTab === 'ai-diagnosis'}
             onClick={() => setActiveTab('ai-diagnosis')}
           />
           <NavItem
             icon={Icons.User}
-            label="Patient Mgmt"
+            label="患者管理"
             isActive={activeTab === 'patients'}
             onClick={() => setActiveTab('patients')}
           />
           <NavItem
              icon={Icons.FileText}
-             label="Report Analysis"
+             label="报告分析"
              isActive={activeTab === 'report-analysis'}
              onClick={() => setActiveTab('report-analysis')}
           />
           <NavItem
             icon={Icons.MessageSquare}
-            label="Electronic Records"
+            label="电子记录"
             isActive={activeTab === 'records'}
             onClick={() => setActiveTab('records')}
           />
           <NavItem
             icon={Icons.Globe}
-            label="Medical Research"
+            label="医学研究"
             isActive={activeTab === 'research'}
             onClick={() => setActiveTab('research')}
           />
           <NavItem
             icon={Icons.Settings}
-            label="System Settings"
+            label="系统设置"
             isActive={activeTab === 'settings'}
             onClick={() => setActiveTab('settings')}
           />

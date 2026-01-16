@@ -2,8 +2,8 @@ from app.src.schema.chat_schema import ChatRequest
 from app.src.service.base_service import BaseService
 from app.src.service.conversation_service import ConversationService
 from app.src.service.language_model_service import LanguageModelService
-from app.src.core.decorators import require_login
-from app.src.core.context import get_current_user_id
+from app.src.common.decorators import require_login
+from app.src.common.context import get_current_user_id
 
 
 class ChatService:

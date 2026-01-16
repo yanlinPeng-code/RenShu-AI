@@ -37,12 +37,14 @@ class User(SQLModel, table=True):
     
     # Relationships
     patient: Optional["Patient"] = Relationship(back_populates="user")
+    conversations: List["Conversation"] = Relationship()
     
     # Table indexes
     __table_args__ = (
         Index("idx_users_username", "username"),
         Index("idx_users_email", "email"),
         Index("idx_users_role", "role"),
+        {"extend_existing": True}
     )
     
     @field_validator('role')
@@ -101,6 +103,7 @@ class Patient(SQLModel, table=True):
     __table_args__ = (
         Index("idx_patients_patient_code", "patient_code"),
         Index("idx_patients_user_id", "user_id"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -135,7 +138,7 @@ class UserSession(SQLModel, table=True):
     __tablename__ = "user_sessions"
     
     id: UUID = Field(default_factory=uuid4, primary_key=True, description="会话ID")
-    user_id: UUID = Field(default_factory=uuid4,foreign_key="users.id", description="用户ID")
+    user_id: UUID = Field(foreign_key="users.id", description="用户ID")
     session_token: str = Field(max_length=255, unique=True, description="会话令牌")
     access_token: Optional[str] = Field(default=None, max_length=500, description="访问令牌")
     refresh_token: Optional[str] = Field(default=None, max_length=500, description="刷新令牌")
@@ -149,8 +152,6 @@ class UserSession(SQLModel, table=True):
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc), description="创建时间")
     is_active: bool = Field(default=True, description="是否激活")
     
-    # Relationships
-    user: "User" = Relationship()
     activities: List["UserActivity"] = Relationship(back_populates="session")
     
     # Table indexes
@@ -160,6 +161,7 @@ class UserSession(SQLModel, table=True):
         Index("idx_sessions_expires_at", "expires_at"),
         Index("idx_sessions_token", "session_token"),
         Index("idx_sessions_user_id", "user_id"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -176,7 +178,7 @@ class UserState(SQLModel, table=True):
     __tablename__ = "user_states"
     
     app_name: str = Field(max_length=128, primary_key=True, description="应用名称")
-    user_id: UUID = Field(default_factory=uuid4, primary_key=True, description="用户ID")
+    user_id: UUID = Field(primary_key=True, description="用户ID")
     state: Optional[Dict[str, Any]] = Field(sa_column=Column(JSON, nullable=True,default= {}), description="状态数据")
     update_time: datetime = Field(default_factory=datetime.now, description="更新时间")
     
@@ -187,6 +189,7 @@ class UserState(SQLModel, table=True):
         Index("idx_user_states_app_user", "app_name", "user_id"),
         Index("idx_user_states_update_time", "update_time"),
         Index("idx_user_states_user_id", "user_id"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -202,7 +205,7 @@ class UserActivity(SQLModel, table=True):
     __tablename__ = "user_activities"
     
     id: UUID = Field(default_factory=uuid4, primary_key=True, description="活动ID")
-    user_id: UUID = Field(default_factory=uuid4,foreign_key="users.id", description="用户ID")
+    user_id: UUID = Field(foreign_key="users.id", description="用户ID")
     session_id: Optional[UUID] = Field(default=None, foreign_key="user_sessions.id", description="会话ID")
     activity_type: Optional[str] = Field(
         description="活动类型",
@@ -223,6 +226,7 @@ class UserActivity(SQLModel, table=True):
         Index("idx_activities_created_at", "created_at"),
         Index("idx_activities_type", "activity_type"),
         Index("idx_activities_user_id", "user_id"),
+        {"extend_existing": True}
     )
     
     model_config = ConfigDict(
@@ -259,10 +263,12 @@ class RefreshToken(SQLModel, table=True):
 
     # Table indexes
     __table_args__ = (
+
         Index("idx_refresh_tokens_expires_at", "expires_at"),
         Index("idx_refresh_tokens_revoked", "is_revoked"),
         Index("idx_refresh_tokens_token_hash", "token_hash"),
         Index("idx_refresh_tokens_user_id", "user_id"),
+        {"extend_existing": True}
     )
 
     model_config = ConfigDict(

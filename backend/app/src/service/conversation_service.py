@@ -3,8 +3,8 @@ import uuid
 from app.src.model import Conversation, User
 from app.src.response.exception.exceptions import InternalServerException
 from app.src.service.base_service import BaseService
-from app.src.core.decorators import require_login
-from app.src.core.context import get_current_user_id
+from app.src.common.decorators import require_login
+from app.src.common.context import get_current_user_id
 from sqlmodel import select
 
 

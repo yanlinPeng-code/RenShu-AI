@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     POSTGRESQL_MAX_OVERFLOW: int = Field(default=10, description="数据库连接池溢出大小")
     POSTGRESQL_POOL_RECYCLE: int = Field(default=3600, description="数据库连接池回收时间")
     POSTGRESQL_ECHO: bool = Field(default=False, description="数据库是否打印SQL")
-
+    POSTGRESQL_POOL_TIMEOUT:int=300
     # 谷歌搜索配置
     SERPER_API_KEY: str = Field(default="your_serper_api_key", description="谷歌搜索API_KEY")
 

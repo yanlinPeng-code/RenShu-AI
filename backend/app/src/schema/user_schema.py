@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
     """用户创建模型"""
     
     username: str = Field(description="用户名", min_length=3, max_length=50)
+    role: str = Field(default="patient",description="用户角色")
     email: str = Field(description="邮箱地址")
     password: str = Field(description="密码", min_length=6)
     real_name: Optional[str] = Field(default=None, description="真实姓名")
@@ -65,7 +66,7 @@ class UserUpdate(BaseModel):
 class PatientCreate(BaseModel):
     """患者创建模型"""
     
-    user_id: int = Field(description="关联用户ID")
+    user_id: UUID = Field(description="关联用户ID")
     patient_code: str = Field(description="患者编号")
     medical_history: Optional[str] = Field(default=None, description="既往病史")
     family_history: Optional[str] = Field(default=None, description="家族病史")
@@ -138,7 +139,7 @@ class ActivityType(str, Enum):
 
 class UserSessionCreate(BaseModel):
     """用户会话创建模型"""
-    user_id: int = Field(description="用户ID")
+    user_id: UUID = Field(description="用户ID")
     session_token: str = Field(description="会话令牌")
     access_token: Optional[str] = Field(default=None, description="访问令牌")
     refresh_token: Optional[str] = Field(default=None, description="刷新令牌")
@@ -168,7 +169,7 @@ class UserSessionUpdate(BaseModel):
 class UserStateCreate(BaseModel):
     """用户状态创建模型"""
     app_name: str = Field(description="应用名称")
-    user_id: str = Field(description="用户ID")
+    user_id: UUID = Field(description="用户ID")
     state: Dict[str, Any] = Field(description="状态数据")
     update_time: datetime = Field(description="更新时间")
 
@@ -181,7 +182,7 @@ class UserStateUpdate(BaseModel):
 
 class UserActivityCreate(BaseModel):
     """用户活动创建模型"""
-    user_id: int = Field(description="用户ID")
+    user_id: UUID = Field(description="用户ID")
     session_id: Optional[UUID] = Field(default=None, description="会话ID")
     activity_type: ActivityType = Field(description="活动类型")
     activity_data: Optional[Dict[str, Any]] = Field(default=None, description="活动数据")

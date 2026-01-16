@@ -95,6 +95,7 @@ class ModelProvider(SQLModel, table=True):
         Index("idx_providers_name", "name"),
         Index("idx_providers_enabled", "is_enabled"),
         Index("idx_providers_position", "position"),
+        {"extend_existing": True}
     )
 
     model_config = ConfigDict(
@@ -167,6 +168,7 @@ class ModelConfig(SQLModel, table=True):
         Index("idx_models_provider_id", "provider_id"),
         Index("idx_models_name", "model_name"),
         Index("idx_models_enabled", "is_enabled"),
+        {"extend_existing": True}
     )
 
     @field_validator('model_type')
@@ -259,6 +261,7 @@ class UserModelConfig(SQLModel, table=True):
         Index("idx_user_models_user_id", "user_id"),
         Index("idx_user_models_default", "user_id", "is_default"),
         Index("idx_user_models_provider", "provider_id"),
+        {"extend_existing": True}
     )
 
     @property

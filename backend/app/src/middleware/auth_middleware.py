@@ -1,20 +1,16 @@
 """
 认证中间件
 自动解析JWT并设置用户上下文
+使用纯 ASGI 中间件实现，避免 BaseHTTPMiddleware 的事务问题
 """
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from starlette.types import ASGIApp, Receive, Send, Scope
 from sqlmodel import select
-
-from app.src.core.context.request_context import UserContext, set_current_context
+from app.src.common.context.request_context import UserContext, set_current_context
 from app.src.utils.auth_utils import verify_token
 from app.src.common.config.prosgresql_config import async_db_manager
 from app.src.model.user_model import User
 from app.src.utils import get_logger
-
-from app.src.common.config.prosgresql_config import get_db
 
 logger = get_logger("AuthMiddleware")
 
@@ -53,9 +49,9 @@ ROLE_PERMISSIONS = {
 }
 
 
-class AuthContextMiddleware(BaseHTTPMiddleware):
+class AuthContextMiddleware:
     """
-    认证上下文中间件
+    认证上下文中间件（纯 ASGI 实现）
 
     功能：
     1. 自动解析请求中的JWT token
@@ -63,20 +59,30 @@ class AuthContextMiddleware(BaseHTTPMiddleware):
     3. 从数据库加载用户角色和权限
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        # 只处理 HTTP 请求
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         # 初始化默认上下文（未认证）
         context = UserContext()
 
-        # 跳过OPTIONS请求
-        if request.method != "OPTIONS":
-            # 尝试从Authorization头获取token
-            auth_header = request.headers.get('Authorization')
+        # 跳过 OPTIONS 请求
+        method = scope.get("method", "")
+        if method != "OPTIONS":
+            # 从 headers 中获取 Authorization
+            headers = dict(scope.get("headers", []))
+            auth_header = headers.get(b"authorization", b"").decode("utf-8")
 
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
 
                 try:
-                    # 验证token
+                    # 验证 token
                     token_data = verify_token(token)
                     user_id = token_data["user_id"]
 
@@ -104,8 +110,7 @@ class AuthContextMiddleware(BaseHTTPMiddleware):
         set_current_context(context)
 
         # 继续处理请求
-        response = await call_next(request)
-        return response
+        await self.app(scope, receive, send)
 
     async def _load_user_roles(self, user_id: str) -> list[str]:
         """
@@ -119,7 +124,7 @@ class AuthContextMiddleware(BaseHTTPMiddleware):
                 return ["patient"]
 
             # 使用 async_db_manager 获取会话
-            async with get_db() as session:
+            async with async_db_manager.get_session() as session:
                 stmt = select(User.role).where(User.id == user_id)
                 result = await session.exec(stmt)
                 role = result.one_or_none()
