@@ -14,3 +14,5 @@ backend/.env
 .esdata
 frontend/node_modules
 
+.trae
+/docs
