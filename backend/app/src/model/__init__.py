@@ -5,8 +5,13 @@
 """
 
 # 用户相关模型 (基础模型，其他模型可能依赖它)
-from .user_model import (
-    User, Patient, UserSession, UserState, UserActivity, DeviceType, ActivityType,RefreshToken
+# from .user_model import (
+#     User, Patient as OldPatient, UserSession, UserState, UserActivity, DeviceType, ActivityType, RefreshToken
+# )
+
+# 账户相关模型 (新的三端分离设计)
+from .account_model import (
+    Account, Patient, Doctor, Admin, AccountType, AccountRefreshToken, AccountActivity,UserState
 )
 
 # 对话相关模型
@@ -30,10 +35,14 @@ from .system_models import (
     SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
     AuditLog, BackupInfo, SystemInfo
 )
+from .model_config_models import (UserProviderConfig)
 
 __all__ = [
     # 用户相关
-    "User", "Patient", "UserSession", "UserState", "UserActivity", "DeviceType", "ActivityType","RefreshToken"
+    # "User", "UserSession",  "UserActivity", "DeviceType", "ActivityType", "RefreshToken",
+     "UserProviderConfig",
+    # 账户相关 (新的三端分离设计)
+    "Account", "Patient", "Doctor", "Admin", "AccountType", "AccountRefreshToken", "AccountActivity","UserState",
 
     # 对话相关
     "Conversation", "Message",

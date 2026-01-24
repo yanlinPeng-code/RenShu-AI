@@ -1,11 +1,13 @@
 import uuid
 
-from app.src.model import Conversation, User
+from app.src.model import Conversation
 from app.src.response.exception.exceptions import InternalServerException
 from app.src.service.base_service import BaseService
 from app.src.common.decorators import require_login
 from app.src.common.context import get_current_user_id
 from sqlmodel import select
+
+from app.src.model import Account
 
 
 class ConversationService(BaseService):
@@ -30,7 +32,7 @@ class ConversationService(BaseService):
 
     async def _get_conversation_by_user_id(self, user_id: str):
         """内部方法：根据用户id获取会话"""
-        stmt = select(User).where(User.id == user_id)
+        stmt = select(Account).where(Account.id == user_id)
         res = await self.session.exec(stmt)
         user = res.one_or_none()
 

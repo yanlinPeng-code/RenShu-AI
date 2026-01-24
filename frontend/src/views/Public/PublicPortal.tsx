@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { User, ChatMessage, UserPersona, AIModelConfig, AVAILABLE_MODELS } from '../../types';
+﻿
+
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, ChatMessage, UserPersona, AIModelConfig, ProviderConfig, CustomModel } from '../../types';
+import { AVAILABLE_MODELS, PROVIDERS } from '../../constants';
 import { Icons } from '../../components/common/Icons';
 import { BrandLogo } from '../../components/common/BrandLogo';
 import { createPublicChat, analyzeUserPersona, sendMessageWithConfig } from '../../services/geminiService';
+import { LogoutConfirmModal } from '../../components/common/LogoutConfirmModal';
 import { Chat } from "@google/genai";
+import { providerApi } from '../../api/modules/model';
 
 interface PublicPortalProps {
   user: User;
@@ -58,6 +64,8 @@ const groupSessionsByDate = (sessions: ChatSession[]) => {
 };
 
 const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+  
   // --- State ---
 
   // Sessions Management
@@ -68,46 +76,145 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
       messages: [{
         id: 'welcome',
         role: 'model',
-        text: `你好 ${user.name}. 我是仁义AI健康助手,我可以为你提供健康咨询和建议。`,
+        text: `你好 ${user.name}. 我是仁术AI健康助手,我可以为你提供健康咨询和建议。`,
         timestamp: new Date()
       }],
       lastModified: new Date()
-    },
-    {
-      id: 'hist-1',
-      title: '头痛分析',
-      messages: [],
-      lastModified: new Date(Date.now() - 86400000) // Yesterday
-    },
-    {
-      id: 'hist-2',
-      title: '春季饮食计划',
-      messages: [],
-      lastModified: new Date(Date.now() - 172800000) // 2 days ago
     }
   ]);
   const [activeSessionId, setActiveSessionId] = useState<string>('init-1');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-
+  
   // UI Toggles
   const [showLeftSidebar, setShowLeftSidebar] = useState(true);
   const [showRightSidebar, setShowRightSidebar] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-
-  // Custom Model Selector State
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showProviderSelector, setShowProviderSelector] = useState(false);
+  const [isQuickConfigOpen, setIsQuickConfigOpen] = useState(false);
 
-  // Current Chat State (Derived/synced with activeSession)
+  // Persistence: Provider Configs & Custom Models
+  const [providerConfigs, setProviderConfigs] = useState<Record<string, ProviderConfig>>(() => {
+    const saved = localStorage.getItem('user_provider_configs');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [customModels, setCustomModels] = useState<CustomModel[]>(() => {
+    const saved = localStorage.getItem('user_custom_models');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [enabledModelIds, setEnabledModelIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('user_enabled_models');
+    // If null, default to all available builtin
+    return saved ? JSON.parse(saved) : AVAILABLE_MODELS.map(m => m.id);
+  });
+
+  // Model & Provider State
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('google');
+  const [apiData, setApiData] = useState<any[]>([]);
+
+  // Fetch Providers and Models from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await providerApi.get_providers_with_models();
+        if (response.success && response.data) {
+          setApiData(response.data);
+          // If current selected provider is not in the list (and list is not empty), select the first one
+          if (response.data.length > 0) {
+             const currentExists = response.data.some((p: any) => p.name === selectedProviderId);
+             if (!currentExists) {
+                // Try to find google or just take the first one
+                const defaultProvider = response.data.find((p: any) => p.name === 'google') || response.data[0];
+                setSelectedProviderId(defaultProvider.name);
+             }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch models config:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Computed Available Models (Filtered by Provider AND Enabled status)
+  const allModels = useMemo(() => {
+    if (apiData.length > 0) {
+        // Map API data to AIModelConfig structure
+        const models: AIModelConfig[] = [];
+        apiData.forEach((p: any) => {
+            if (p.models) {
+                p.models.forEach((m: any) => {
+                    models.push({
+                        id: m.model_name, // Use model_name as ID for the chat service
+                        name: m.label || m.model_name,
+                        description: m.description || '',
+                        supportsThinking: m.features?.includes('thinking') || false,
+                        supportsVision: m.features?.includes('vision') || false,
+                        provider: p.name as any,
+                        contextWindow: m.context_window ? `${Math.round(m.context_window/1000)}K` : undefined
+                    });
+                });
+            }
+        });
+        // Merge with custom models if any (local storage ones)
+        return [...models, ...customModels];
+    }
+    // Fallback to constants if API fails or empty
+    return [...AVAILABLE_MODELS, ...customModels];
+  }, [apiData, customModels]);
+
+  const currentProviders = useMemo(() => {
+      if (apiData.length > 0) {
+          return apiData.map((p: any) => ({
+              id: p.name, // Use name as ID to match model provider field
+              name: p.label || p.name,
+              icon: p.icon || '🤖'
+          }));
+      }
+      return PROVIDERS;
+  }, [apiData]);
+
+  const filteredModels = useMemo(() => 
+    allModels.filter(m => m.provider === selectedProviderId && enabledModelIds.includes(m.id)), 
+  [selectedProviderId, allModels, enabledModelIds]);
+  
+  const [selectedModel, setSelectedModel] = useState<AIModelConfig>(filteredModels[0] || AVAILABLE_MODELS[0]);
+
+  // Sync when data changes externally (e.g. from management page)
+  useEffect(() => {
+    const handleStorageChange = () => {
+        const savedProviderConfigs = localStorage.getItem('user_provider_configs');
+        if (savedProviderConfigs) setProviderConfigs(JSON.parse(savedProviderConfigs));
+        
+        const savedCustomModels = localStorage.getItem('user_custom_models');
+        if (savedCustomModels) setCustomModels(JSON.parse(savedCustomModels));
+
+        const savedEnabledModels = localStorage.getItem('user_enabled_models');
+        if (savedEnabledModels) setEnabledModelIds(JSON.parse(savedEnabledModels));
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    handleStorageChange(); // Init
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
+    if (filteredModels.length > 0 && !filteredModels.find(m => m.id === selectedModel.id)) {
+        setSelectedModel(filteredModels[0]);
+    }
+  }, [filteredModels, selectedModel]);
+
+  // Chat State
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Settings
-  const [selectedModel, setSelectedModel] = useState<AIModelConfig>(AVAILABLE_MODELS[0]);
   const [enableDeepThink, setEnableDeepThink] = useState(false);
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -131,7 +238,6 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
   const [isPersonaAnalyzing, setIsPersonaAnalyzing] = useState(false);
   const [healthScore, setHealthScore] = useState(user.healthScore || 85);
 
-  // Refs
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,7 +245,6 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
 
   // --- Effects ---
 
-  // Use layout effect to prevent flash of wrong theme when switching portals
   useLayoutEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -158,22 +263,53 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeSession.messages]);
 
-  useEffect(() => {
-    if (isSearchActive && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchActive]);
+  // --- Handlers ---
 
-  // --- Handlers: Session Management ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files: File[] = Array.from(e.target.files);
+      const newAttachments: Attachment[] = await Promise.all(
+        files.map(async (file: File) => {
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+          return { file, previewUrl: URL.createObjectURL(file), base64 };
+        })
+      );
+      setAttachments(prev => [...prev, ...newAttachments]);
+    }
+  };
+
+  // 语音识别逻辑 (来自 a.ts)
+  const handleVoiceInput = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'zh-CN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => setInputValue(prev => prev + " (正在倾听...)");
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(prev => prev.replace(" (正在倾听...)", "") + transcript);
+      };
+      recognition.onerror = () => setInputValue(prev => prev.replace(" (正在倾听...)", ""));
+      recognition.start();
+    } else {
+      alert("您的浏览器不支持语音识别功能。");
+    }
+  };
 
   const handleNewChat = () => {
     const newSession: ChatSession = {
       id: Date.now().toString(),
-      title: 'New Conversation',
+      title: '新的对话',
       messages: [{
         id: Date.now().toString(),
         role: 'model',
-        text: `Hello ${user.name}. I am using ${selectedModel.name}. How are you feeling today?`,
+        text: `你好 ${user.name}. 我目前切换到了 ${selectedModel.name}. 请问有什么可以帮您？`,
         timestamp: new Date()
       }],
       lastModified: new Date()
@@ -183,37 +319,19 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
     if (window.innerWidth < 768) setShowLeftSidebar(false);
   };
 
-  const handleDeleteSession = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const newSessions = sessions.filter(s => s.id !== id);
-    setSessions(newSessions);
-    if (activeSessionId === id && newSessions.length > 0) {
-      setActiveSessionId(newSessions[0].id);
-    } else if (newSessions.length === 0) {
-      handleNewChat(); // Always keep one
-    }
-  };
-
-  const startRenameSession = (e: React.MouseEvent, session: ChatSession) => {
-    e.stopPropagation();
-    setEditingSessionId(session.id);
-    setEditTitle(session.title);
-  };
-
-  const saveRenameSession = () => {
-    if (editingSessionId) {
-      setSessions(prev => prev.map(s => s.id === editingSessionId ? { ...s, title: editTitle } : s));
-      setEditingSessionId(null);
-    }
-  };
-
-  const filteredSessions = sessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  const groupedSessions = groupSessionsByDate(filteredSessions);
-
-  // --- Handlers: Chat ---
-
   const handleSendMessage = async () => {
     if ((!inputValue.trim() && attachments.length === 0) || !chatRef.current) return;
+
+    // Check configuration
+    // Look at Provider Level Config first
+    const providerConfig = providerConfigs[selectedModel.provider];
+    const isGoogle = selectedModel.provider === 'google';
+    
+    // Logic: If not google (built-in assumed), check if provider API key exists
+    if (!isGoogle && !providerConfig?.apiKey) {
+      setIsQuickConfigOpen(true);
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -227,12 +345,10 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
       }))
     };
 
-    // Optimistic Update
     const updatedMessages = [...activeSession.messages, userMsg];
     updateSessionMessages(activeSessionId, updatedMessages);
 
-    // Auto-rename
-    if (activeSession.messages.length <= 1 && activeSession.title === 'New Conversation') {
+    if (activeSession.messages.length <= 1 && activeSession.title === '新的对话') {
        const newTitle = inputValue.slice(0, 20) + (inputValue.length > 20 ? '...' : '');
        setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, title: newTitle } : s));
     }
@@ -249,6 +365,11 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
         mimeType: a.file.type
       }));
 
+      // NOTE: In a real implementation, we would pass the providerConfig.apiKey to a new client instance here.
+      // createPublicChat currently uses process.env.API_KEY. 
+      // For this demo, we assume the service handles key swapping based on the selected model/provider context if implemented fully backend.
+      // Or we would re-instantiate GoogleGenAI with the new key.
+      
       const response = await sendMessageWithConfig(
         chatRef.current,
         userMsg.text || (currentAttachments.length > 0 ? "Analyzed attachment" : ""),
@@ -268,7 +389,6 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
 
       updateSessionMessages(activeSessionId, [...updatedMessages, modelMsg]);
 
-      // Persona Analysis
       const newPersona = await analyzeUserPersona(userMsg.text, persona);
       const changes: string[] = [];
       (Object.keys(newPersona) as Array<keyof UserPersona>).forEach(key => {
@@ -286,7 +406,7 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
       updateSessionMessages(activeSessionId, [...updatedMessages, {
         id: Date.now().toString(),
         role: 'model',
-        text: "I apologize, but I'm having trouble connecting. Please try again.",
+        text: "抱歉，连接到该模型时出现问题。请确保您的 API Key 配置正确且有效。",
         timestamp: new Date()
       }]);
     } finally {
@@ -299,71 +419,83 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: newMessages, lastModified: new Date() } : s));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-         if (ev.target?.result) {
-            setAttachments(prev => [...prev, {
-              file,
-              previewUrl: URL.createObjectURL(file),
-              base64: ev.target.result as string
-            }]);
-         }
-      };
-      reader.readAsDataURL(file);
-    }
+  // Only used for Quick Config Modal - Saves to Provider Config now
+  const saveQuickConfig = (apiKey: string) => {
+    setProviderConfigs(prev => ({
+        ...prev,
+        [selectedProviderId]: {
+            ...prev[selectedProviderId],
+            apiKey: apiKey,
+            enabled: true
+        }
+    }));
+    // Persist to local storage immediately for sync
+    const current = JSON.parse(localStorage.getItem('user_provider_configs') || '{}');
+    current[selectedProviderId] = { ...current[selectedProviderId], apiKey, enabled: true };
+    localStorage.setItem('user_provider_configs', JSON.stringify(current));
   };
 
-  const handleVoiceInput = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setInputValue(prev => prev + " (Listening...)");
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputValue(prev => prev.replace(" (Listening...)", "") + " " + transcript);
-      };
-
-      recognition.onerror = () => {
-        setInputValue(prev => prev.replace(" (Listening...)", ""));
-      };
-
-      recognition.start();
-    } else {
-      alert("Speech recognition not supported.");
-    }
-  };
+  const groupSessions = groupSessionsByDate(sessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())));
 
   const toggleTheme = () => {
       setIsDarkMode(!isDarkMode);
-      setShowUserMenu(false); // Immediate close
   };
-
-  // --- Render ---
 
   return (
     <div className="h-screen w-full flex bg-rice-paper overflow-hidden transition-colors duration-500">
+      <LogoutConfirmModal 
+        isOpen={showLogoutModal} 
+        onConfirm={() => { setShowLogoutModal(false); onLogout(); }} 
+        onCancel={() => setShowLogoutModal(false)} 
+        variant="public"
+      />
+      
+      {/* 快速配置小窗 (仅在对话拦截时显示) */}
+      {isQuickConfigOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-tcm-charcoal w-full max-w-sm rounded-3xl shadow-2xl p-6 border border-tcm-gold/30 scale-in-center">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-4 bg-tcm-gold/10 rounded-full text-tcm-gold">
+                <Icons.Zap size={32} />
+              </div>
+              <h3 className="text-lg font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">需配置服务商</h3>
+              <p className="text-sm text-gray-500">您选中的模型属于 <b>{currentProviders.find(p => p.id === selectedProviderId)?.name}</b>，需要配置 API Key 才能使用。</p>
+              
+              <div className="w-full space-y-3 pt-2">
+                <input 
+                  type="password" 
+                  placeholder="输入 Provider API Key" 
+                  autoFocus
+                  className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-tcm-lightGreen transition-all text-sm"
+                  onChange={(e) => saveQuickConfig(e.target.value)}
+                />
+                <button 
+                  onClick={() => setIsQuickConfigOpen(false)}
+                  className="w-full py-3 bg-tcm-darkGreen text-white rounded-xl font-bold hover:bg-tcm-lightGreen transition-all"
+                >
+                  保存并继续
+                </button>
+                <button 
+                  onClick={() => setIsQuickConfigOpen(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  稍后再说
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* 1. LEFT SIDEBAR: Gemini Style */}
+      {/* 1. LEFT SIDEBAR */}
       <aside
         className={`${showLeftSidebar ? 'w-[280px]' : 'w-0'} flex-shrink-0 bg-[#f0f4f9]/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border-r border-tcm-lightGreen/10 flex flex-col transition-all duration-300 overflow-hidden relative z-30`}
       >
         <div className="flex flex-col h-full">
-          {/* Header: Menu & Search */}
           <div className="flex items-center justify-between p-4 pb-2">
             <button
                onClick={() => setShowLeftSidebar(false)}
                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"
-               title="Collapse Menu"
             >
               <Icons.Menu size={20} />
             </button>
@@ -371,20 +503,18 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
             <button
                onClick={() => setIsSearchActive(!isSearchActive)}
                className={`p-2 rounded-full transition-colors ${isSearchActive ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'}`}
-               title="Search Chats"
             >
               <Icons.Stethoscope className="rotate-90" size={20} />
             </button>
           </div>
 
-          {/* New Chat & Search Input */}
           <div className="px-4 py-2">
             {isSearchActive ? (
               <div className="relative animate-in fade-in slide-in-from-top-1">
                  <input
                    ref={searchInputRef}
                    type="text"
-                   placeholder="Search..."
+                   placeholder="搜索历史会话..."
                    value={searchQuery}
                    onChange={(e) => setSearchQuery(e.target.value)}
                    className="w-full bg-white dark:bg-black/20 border border-transparent dark:border-white/10 rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 shadow-sm"
@@ -392,9 +522,6 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                  <div className="absolute left-3 top-2.5 text-gray-500">
                    <Icons.Activity size={16} />
                  </div>
-                 <button onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                   <Icons.X size={16} />
-                 </button>
               </div>
             ) : (
               <button
@@ -402,21 +529,20 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                 className="flex items-center gap-3 px-4 py-3 bg-[#dde3ea] dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-200 rounded-2xl hover:bg-[#d0d7de] dark:hover:bg-[#333] transition-colors w-full shadow-sm"
               >
                 <Icons.Edit3 size={18} />
-                <span className="text-sm font-medium">New Chat</span>
+                <span className="text-sm font-medium">开启新诊疗</span>
               </button>
             )}
           </div>
 
-          {/* Chat History List (Grouped) */}
           <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar space-y-4">
-             {Object.entries(groupedSessions).map(([group, groupSessions]) => (
+             {Object.entries(groupSessions).map(([group, groupSessions]) => (
                groupSessions.length > 0 && (
                  <div key={group} className="animate-in fade-in">
                    <div className="px-4 py-2 text-xs font-bold text-gray-500 dark:text-gray-400">{group}</div>
                    {groupSessions.map(session => (
                       <div
                         key={session.id}
-                        onClick={() => { setActiveSessionId(session.id); if(window.innerWidth < 768) setShowLeftSidebar(false); }}
+                        onClick={() => setActiveSessionId(session.id)}
                         className={`group flex items-center gap-3 px-4 py-2 mx-2 rounded-full cursor-pointer transition-colors ${
                           activeSessionId === session.id 
                             ? 'bg-tcm-lightGreen/20 dark:bg-tcm-lightGreen/10 text-tcm-darkGreen dark:text-tcm-freshGreen font-medium' 
@@ -424,55 +550,30 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                         }`}
                       >
                         <Icons.MessageSquare size={16} className="flex-shrink-0 opacity-70" />
-
-                        <div className="flex-1 min-w-0">
-                          {editingSessionId === session.id ? (
-                            <input
-                              type="text"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              onBlur={saveRenameSession}
-                              onKeyDown={(e) => e.key === 'Enter' && saveRenameSession()}
-                              autoFocus
-                              className="w-full bg-transparent border-b border-gray-400 focus:outline-none text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <div className="text-sm truncate">
-                              {session.title}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Hover Actions */}
-                        <div className={`flex items-center ${activeSessionId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                           <button onClick={(e) => startRenameSession(e, session)} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/20 rounded-full">
-                             <Icons.Edit3 size={12} />
-                           </button>
-                           <button onClick={(e) => handleDeleteSession(e, session.id)} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/20 rounded-full hover:text-red-500">
-                             <Icons.Trash2 size={12} />
-                           </button>
-                        </div>
+                        <div className="flex-1 min-w-0 text-sm truncate">{session.title}</div>
                       </div>
                    ))}
                  </div>
                )
              ))}
           </div>
-
           {/* Bottom: Settings / User */}
           <div className="p-2 border-t border-gray-200 dark:border-white/5 relative bg-white/50 dark:bg-black/20">
              {showUserMenu && (
                 <div className="absolute bottom-full left-2 right-2 mb-2 bg-[#f0f4f9] dark:bg-[#1e1e1e] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-in slide-in-from-bottom-2 z-40">
-                  <button onClick={() => setIsEditingProfile(true)} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/5 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
-                    <Icons.Edit3 size={16}/> Edit Profile
+                  <button onClick={() => { setIsEditingProfile(true); setShowUserMenu(false); }} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 transition-colors">
+                    <Icons.Edit3 size={16} className="text-tcm-lightGreen"/> 个人资料设置
                   </button>
-                  <button onClick={toggleTheme} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/5 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200">
-                    {isDarkMode ? <Icons.Sun size={16} /> : <Icons.Moon size={16} />}
-                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                  {/* 跳转到新的模型管理页面 */}
+                  <button onClick={() => { navigate('/public/models'); setShowUserMenu(false); }} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 transition-colors">
+                    <Icons.Settings size={16} className="text-tcm-gold"/> 模型管理配置
                   </button>
-                  <button onClick={onLogout} className="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-sm text-red-600 dark:text-red-400 border-t border-gray-200 dark:border-gray-700">
-                    <Icons.LogOut size={16}/> Sign Out
+                  <button onClick={toggleTheme} className="w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 transition-colors">
+                    {isDarkMode ? <Icons.Sun size={16} className="text-yellow-500" /> : <Icons.Moon size={16} className="text-indigo-400" />}
+                    {isDarkMode ? '切换到浅色模式' : '切换到深色模式'}
+                  </button>
+                  <button onClick={() => { setShowLogoutModal(true); setShowUserMenu(false); }}  className="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-sm text-red-600 dark:text-red-400 border-t border-gray-200 dark:border-gray-700 transition-colors">
+                    <Icons.LogOut size={16}/> 退出账号
                   </button>
                 </div>
              )}
@@ -481,7 +582,7 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className={`flex items-center gap-3 w-full p-3 rounded-full hover:bg-gray-200 dark:hover:bg-white/5 transition-colors ${showUserMenu ? 'bg-gray-200 dark:bg-white/5' : ''}`}
              >
-                <div className="w-8 h-8 rounded-full bg-tcm-darkGreen text-white flex items-center justify-center text-xs font-bold">
+                <div className="w-8 h-8 rounded-full bg-tcm-darkGreen text-white flex items-center justify-center text-xs font-bold shadow-inner">
                    {user.name.charAt(0)}
                 </div>
                 <div className="flex-1 text-left text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
@@ -493,10 +594,8 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
         </div>
       </aside>
 
-      {/* 2. MIDDLE: Main Chat Area */}
+      {/* 2. MIDDLE AREA */}
       <main className="flex-1 flex flex-col relative z-10 transition-colors duration-500 min-w-0 bg-transparent">
-
-        {/* Top Bar */}
         <header className="h-16 flex items-center justify-between px-6 z-10 transition-colors bg-white/80 dark:bg-[#131314]/80 backdrop-blur-sm border-b border-tcm-lightGreen/5">
           <div className="flex items-center gap-3">
              {!showLeftSidebar && (
@@ -508,14 +607,48 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                </button>
              )}
 
-             <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 px-3 py-1.5 rounded-lg transition-colors group">
-                <BrandLogo size="sm" showText={true} />
-                <Icons.ChevronRight size={14} className="text-gray-400 group-hover:rotate-90 transition-transform" />
+             {/* 仁术 Logo Dropdown 实现供应商切换 */}
+             <div className="relative">
+               <div 
+                  onClick={() => setShowProviderSelector(!showProviderSelector)}
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 px-3 py-1.5 rounded-lg transition-colors group"
+                >
+                  <BrandLogo size="sm" showText={true} />
+                  <Icons.ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${showProviderSelector ? 'rotate-180' : ''}`} />
+               </div>
+
+               {showProviderSelector && (
+                 <>
+                   <div className="fixed inset-0 z-40" onClick={() => setShowProviderSelector(false)}></div>
+                   <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-left">
+                     <div className="p-1.5 space-y-0.5">
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">选择模型提供商</div>
+                        {currentProviders.map((p: any) => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              setSelectedProviderId(p.id);
+                              setShowProviderSelector(false);
+                            }}
+                           className={`w-full text-left p-2 rounded-lg flex items-center gap-3 transition-colors ${
+                             selectedProviderId === p.id 
+                               ? 'bg-tcm-lightGreen/10 border border-tcm-lightGreen/20 text-tcm-darkGreen dark:text-tcm-lightGreen' 
+                               : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200'
+                           }`}
+                         >
+                           <span className="text-lg">{p.icon}</span>
+                           <span className="text-xs font-bold">{p.name}</span>
+                           {selectedProviderId === p.id && <Icons.Check size={14} className="ml-auto" />}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+                 </>
+               )}
              </div>
           </div>
 
           <div className="flex items-center gap-2">
-             {/* Beautiful Custom Model Selector */}
              <div className="relative">
                 <button
                   onClick={() => setShowModelSelector(!showModelSelector)}
@@ -528,14 +661,17 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                     <Icons.ChevronDown size={12} className={`text-gray-400 flex-shrink-0 transition-transform duration-300 ${showModelSelector ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Custom Dropdown Menu */}
                 {showModelSelector && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowModelSelector(false)}></div>
                     <div className="absolute top-full right-0 mt-2 w-full bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-right">
                       <div className="p-1.5 space-y-0.5">
-                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Select AI Model</div>
-                        {AVAILABLE_MODELS.map(model => (
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">选择已适配模型</div>
+                        {filteredModels.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-gray-400">
+                                暂无已启用模型。<br/>请前往 <span className="text-tcm-lightGreen cursor-pointer" onClick={() => navigate('/public/models')}>模型管理</span> 启用。
+                            </div>
+                        ) : filteredModels.map(model => (
                           <button
                             key={model.id}
                             onClick={() => {
@@ -560,26 +696,12 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                                 selectedModel.id === model.id 
                                   ? 'text-tcm-darkGreen dark:text-tcm-lightGreen' 
                                   : 'text-gray-700 dark:text-gray-200'
-                              }`}>
-                                {model.name}
-                              </div>
-                              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0 truncate">
-                                {model.description}
-                              </div>
+                              }`}>{model.name}</div>
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0 truncate">{model.description}</div>
                             </div>
-                            {selectedModel.id === model.id && (
-                              <Icons.Check size={14} className="text-tcm-lightGreen mt-1" />
-                            )}
+                            {(model as CustomModel).isCustom && <span className="text-[9px] text-tcm-gold border border-tcm-gold/30 px-1 rounded">Custom</span>}
                           </button>
                         ))}
-                      </div>
-                      <div className="p-2 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-gray-700 text-[10px] text-gray-400 flex justify-between items-center">
-                        <div className="flex items-center gap-1.5">
-                           <Icons.BrainCircuit size={10} className="text-indigo-400" /> Thinking
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                           <Icons.Image size={10} className="text-pink-400" /> Vision
-                        </div>
                       </div>
                     </div>
                   </>
@@ -589,7 +711,6 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
              <button
                onClick={() => setShowRightSidebar(!showRightSidebar)}
                className={`p-2 rounded-full transition-colors ${showRightSidebar ? 'bg-tcm-lightGreen/10 text-tcm-lightGreen' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'}`}
-               title="Toggle Health Profile"
              >
                <Icons.Activity size={20} />
              </button>
@@ -599,87 +720,34 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
         {/* Chat Stream */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scroll-smooth">
           <div className="max-w-4xl mx-auto w-full space-y-8">
-            {activeSession.messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center space-y-8 mt-12">
-                 <div className="space-y-2 relative">
-                   {/* Decorative background for welcome */}
-                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-tcm-lightGreen/10 rounded-full blur-[80px] pointer-events-none"></div>
-
-                   <h1 className="text-4xl md:text-5xl font-medium text-gradient-green pb-2 font-serif-sc">
-                      Hello, {user.name}
-                   </h1>
-                   <h2 className="text-4xl md:text-5xl font-medium text-gray-400 dark:text-gray-500 font-serif-sc">
-                      How can I help you today?
-                   </h2>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full px-4">
-                    {[
-                      {icon: Icons.Activity, text: 'Analyze symptoms'},
-                      {icon: Icons.Leaf, text: 'TCM Advice'},
-                      {icon: Icons.BrainCircuit, text: 'Brainstorm ideas'},
-                      {icon: Icons.Image, text: 'Create image'}
-                    ].map((item, i) => (
-                      <button key={i} className="flex flex-col gap-3 p-4 bg-white/60 dark:bg-[#1e1e1e]/60 backdrop-blur rounded-xl hover:bg-white dark:hover:bg-[#2a2a2a] transition-all hover:-translate-y-1 shadow-sm border border-white/20 dark:border-white/5 text-left group">
-                         <div className="p-2 bg-tcm-freshGreen dark:bg-black/20 w-fit rounded-full group-hover:scale-110 transition-transform">
-                           <item.icon size={20} className="text-tcm-lightGreen" />
-                         </div>
-                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.text}</span>
-                      </button>
-                    ))}
-                 </div>
-              </div>
-            ) : (
-              activeSession.messages.map((msg) => (
+            {activeSession.messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up group w-full`}>
                   {msg.role === 'model' && (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-tcm-lightGreen to-tcm-darkGreen text-white flex items-center justify-center shadow-lg mr-4 flex-shrink-0 mt-1">
                       <Icons.Zap size={14} />
                     </div>
                   )}
-
                   <div className={`space-y-2 max-w-[85%]`}>
                     {msg.role === 'user' ? (
                        <div className="px-5 py-3 text-gray-800 dark:text-white leading-relaxed whitespace-pre-wrap">
-                          {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mb-2">
-                                {msg.attachments.map((att, idx) => (
-                                  att.type === 'image' ? (
-                                    <img key={idx} src={att.url} alt="attachment" className="h-32 rounded-lg border border-gray-200 dark:border-gray-600" />
-                                  ) : (
-                                    <div key={idx} className="flex items-center gap-2 bg-white dark:bg-black/20 p-2 rounded text-xs">
-                                      <Icons.FileText size={14}/> {att.name}
-                                    </div>
-                                  )
-                                ))}
-                              </div>
-                          )}
+                          {msg.attachments?.map((att, idx) => (
+                            <img key={idx} src={att.url} alt="att" className="h-32 rounded-lg border mb-2" />
+                          ))}
                           {msg.text}
                        </div>
                     ) : (
                        <div className="text-gray-800 dark:text-gray-200 leading-relaxed">
-                          <div className="prose prose-lg max-w-none dark:prose-invert prose-p:my-2 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-strong:font-bold">
+                          <div className="prose prose-lg max-w-none dark:prose-invert prose-p:my-2">
                             {msg.text.split('\n').map((line, i) => <p key={i}>{line}</p>)}
                           </div>
                        </div>
                     )}
-
-                    {/* Message Actions */}
-                    {msg.role === 'model' && (
-                      <div className="flex items-center gap-2 pt-1 pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1 text-gray-400 hover:text-gray-600"><Icons.Check size={14}/></button>
-                        <button className="p-1 text-gray-400 hover:text-gray-600"><Icons.Edit3 size={14}/></button>
-                      </div>
-                    )}
                   </div>
-
                   {msg.role === 'user' && (
                     <img src={user.avatar} className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 ml-3 shadow-sm object-cover flex-shrink-0 mt-1" alt="Me" />
                   )}
                 </div>
-              ))
-            )}
-
+            ))}
             {isLoading && (
                <div className="flex justify-start w-full">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-tcm-lightGreen to-tcm-darkGreen text-white flex items-center justify-center shadow-lg mr-4 flex-shrink-0">
@@ -697,20 +765,42 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 md:p-6 pt-0 z-20">
-          <div className="max-w-4xl mx-auto bg-[#f0f4f9] dark:bg-[#1e1e1e] rounded-3xl p-2 flex flex-col gap-2 transition-colors duration-500 relative shadow-sm border border-white/50 dark:border-white/5">
+        <div className="p-2 z-20">
+          <div className="max-w-4xl mx-auto">
+             {attachments.length > 0 && (
+                <div className="flex gap-3 px-4 py-2 overflow-x-auto custom-scrollbar">
+                  {attachments.map((att, idx) => (
+                      <div key={idx} className="relative group flex-shrink-0">
+                        <img src={att.previewUrl} alt="preview" className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-gray-600 shadow-sm" />
+                        <button
+                          onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                          className="absolute -top-1 -right-1 bg-gray-800 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Icons.X size={10} />
+                        </button>
+                      </div>
+                  ))}
+                </div>
+             )}
 
-             {/* Input */}
-             <div className="flex items-end gap-2 px-4 pb-1">
-                {/* File Upload Button (Red Box Update) */}
+             <div className="bg-[#f0f4f9] dark:bg-[#1e1e1e] rounded-full p-3 flex items-center gap-2 transition-all duration-300 shadow-sm border border-gray-200 dark:border-gray-700 ring-1 ring-transparent focus-within:ring-tcm-lightGreen/30 focus-within:bg-white dark:focus-within:bg-[#252525]">
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 mb-1.5 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors bg-gray-200 dark:bg-white/5"
-                    title="Upload File"
-                 >
-                   <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-                   <Icons.Plus size={20} />
+                    className="p-1.5 text-gray-400 hover:text-tcm-darkGreen dark:text-gray-500 dark:hover:text-tcm-lightGreen transition-colors rounded-full hover:bg-gray-200/50 dark:hover:bg-white/10"
+                    title="Upload"
+                >
+                  <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                  <Icons.Paperclip size={20} />
                 </button>
+
+                <button
+                    onClick={handleVoiceInput}
+                    className="p-1.5 text-gray-400 hover:text-tcm-darkGreen dark:text-gray-500 dark:hover:text-tcm-lightGreen transition-colors rounded-full hover:bg-gray-200/50 dark:hover:bg-white/10"
+                    title="语音输入"
+                >
+                  <Icons.Mic size={20} />
+                </button>
+
                 <textarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
@@ -720,67 +810,65 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Enter a prompt here"
-                  className="flex-1 max-h-48 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 dark:text-gray-100 placeholder-gray-500 resize-none py-4 text-base"
+                  placeholder="输入健康咨询问题..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 dark:text-gray-100 placeholder-gray-400 resize-none py-1.5 text-sm max-h-32"
                   rows={1}
+                  style={{ minHeight: '32px' }}
                 />
-                <button
-                  onClick={handleVoiceInput}
-                  className="p-2 mb-1.5 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                >
-                  <Icons.Mic size={20} />
-                </button>
-                {inputValue.trim() || attachments.length > 0 ? (
-                  <button
-                    onClick={() => handleSendMessage()}
-                    className="p-2 mb-1.5 bg-tcm-darkGreen dark:bg-tcm-lightGreen text-white rounded-full hover:opacity-90 transition-opacity shadow-md"
-                  >
-                    <Icons.Send size={18} />
-                  </button>
-                ) : null}
-             </div>
 
-             {/* Attachment Preview */}
-             {attachments.length > 0 && (
-               <div className="flex gap-2 px-4 pb-2">
-                 {attachments.map((att, idx) => (
-                    <div key={idx} className="relative group">
-                      <img src={att.previewUrl} alt="preview" className="h-12 w-12 rounded object-cover border border-gray-200 dark:border-gray-600" />
-                      <button
-                        onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
-                        className="absolute -top-1 -right-1 bg-gray-800 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Icons.X size={10} />
-                      </button>
-                    </div>
-                 ))}
-               </div>
-             )}
-          </div>
-          <div className="text-center text-xs text-gray-400 mt-2">
-            RenShu AI may display inaccurate info, including about people, so double-check its responses.
+                <div className="flex items-center gap-1 border-l border-gray-300 dark:border-gray-700 pl-2">
+                    <button
+                      onClick={() => setEnableDeepThink(!enableDeepThink)}
+                      className={`p-1.5 rounded-full transition-all ${
+                        enableDeepThink 
+                          ? 'text-tcm-darkGreen bg-tcm-lightGreen/20 dark:text-tcm-lightGreen' 
+                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                      }`}
+                      title="Deep Thinking"
+                    >
+                       <Icons.BrainCircuit size={18} />
+                    </button>
+                    <button
+                      onClick={() => setEnableWebSearch(!enableWebSearch)}
+                      className={`p-1.5 rounded-full transition-all ${
+                        enableWebSearch
+                          ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400' 
+                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                      }`}
+                      title="Web Search"
+                    >
+                       <Icons.Globe size={18} />
+                    </button>
+                </div>
+                
+                <button
+                    onClick={() => handleSendMessage()}
+                    disabled={!inputValue.trim() && attachments.length === 0}
+                    className={`p-1.5 rounded-full transition-all duration-300 ${
+                      inputValue.trim() || attachments.length > 0
+                        ? 'bg-tcm-darkGreen text-white shadow-md hover:bg-tcm-lightGreen transform hover:scale-105'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                    }`}
+                >
+                    <Icons.Send size={18} className={isLoading ? "animate-pulse" : ""} />
+                </button>
+             </div>
           </div>
         </div>
-
       </main>
 
-      {/* 3. RIGHT SIDEBAR: Health Profile (Existing) */}
+      {/* 3. RIGHT SIDEBAR */}
       <aside className={`${showRightSidebar ? 'w-80' : 'w-0'} flex-shrink-0 flex flex-col ${isDarkMode ? 'glass-panel-dark' : 'glass-panel'} border-l border-white/50 dark:border-white/10 z-20 shadow-xl transition-all duration-500 overflow-hidden`}>
-        {/* Header Logo Area */}
         <div className="h-16 flex-shrink-0 flex items-center px-6 border-b border-gray-200/50 dark:border-white/10 bg-white/30 dark:bg-black/10">
            <Icons.Leaf className="text-tcm-lightGreen mr-3" size={24} />
-           <div className="overflow-hidden">
-             <h1 className="text-lg font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc tracking-wide whitespace-nowrap">Health Profile</h1>
-           </div>
+           <h1 className="text-lg font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc tracking-wide whitespace-nowrap">智能健康画像</h1>
         </div>
 
-        {/* Dynamic User Persona Visualization */}
         <div className="flex-1 overflow-y-auto p-6 relative w-80">
            <div className="space-y-4 relative z-10">
-              {/* Health Score Card */}
               <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-white dark:border-white/10 shadow-sm backdrop-blur-sm">
                 <div className="flex justify-between items-end mb-2">
-                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Wellness Score</span>
+                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300">体质健康分</span>
                   <span className="text-3xl font-serif-sc font-bold text-tcm-darkGreen dark:text-tcm-lightGreen">{healthScore}</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
@@ -788,7 +876,6 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* Persona Fields */}
               {(Object.keys(persona) as Array<keyof UserPersona>).map((key) => (
                 <div
                   key={key}
@@ -798,12 +885,12 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
                       : 'bg-white/40 dark:bg-white/5 border-transparent hover:border-tcm-lightGreen/30'
                   }`}
                 >
-                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                     {changedFields.includes(key) && <span className="w-2 h-2 bg-tcm-accent rounded-full animate-ping"></span>}
                   </div>
                   <div className="font-serif-sc text-tcm-darkGreen dark:text-tcm-cream text-sm font-medium leading-relaxed">
-                    {persona[key] || "Unknown"}
+                    {persona[key] || "未录入"}
                   </div>
                 </div>
               ))}
@@ -811,40 +898,41 @@ const PublicPortal: React.FC<PublicPortalProps> = ({ user, onLogout }) => {
         </div>
       </aside>
 
-      {/* Edit Profile Modal (Existing) */}
+      {/* Edit Profile Modal */}
       {isEditingProfile && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-white dark:bg-tcm-charcoal rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
+           <div className="bg-white dark:bg-tcm-charcoal rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up border border-tcm-lightGreen/20">
               <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                 <h2 className="text-xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">Edit Health Profile</h2>
+                 <h2 className="text-xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc">修改健康档案</h2>
                  <button onClick={() => setIsEditingProfile(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><Icons.X /></button>
               </div>
               <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Age</label>
-                      <input type="text" value={editPersonaForm.age} onChange={e => setEditPersonaForm({...editPersonaForm, age: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">年龄</label>
+                      <input type="text" value={editPersonaForm.age} onChange={e => setEditPersonaForm({...editPersonaForm, age: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white focus:ring-1 focus:ring-tcm-lightGreen outline-none" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Gender</label>
-                      <input type="text" value={editPersonaForm.gender} onChange={e => setEditPersonaForm({...editPersonaForm, gender: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white" />
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">性别</label>
+                      <input type="text" value={editPersonaForm.gender} onChange={e => setEditPersonaForm({...editPersonaForm, gender: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white focus:ring-1 focus:ring-tcm-lightGreen outline-none" />
                     </div>
                  </div>
                  <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Medical History</label>
-                    <textarea value={editPersonaForm.medicalHistory} onChange={e => setEditPersonaForm({...editPersonaForm, medicalHistory: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg h-24 dark:text-white" />
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">既往病史</label>
+                    <textarea value={editPersonaForm.medicalHistory} onChange={e => setEditPersonaForm({...editPersonaForm, medicalHistory: e.target.value})} className="w-full p-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg h-24 dark:text-white focus:ring-1 focus:ring-tcm-lightGreen outline-none" />
                  </div>
               </div>
               <div className="p-6 bg-gray-50 dark:bg-black/10 flex justify-end gap-3">
-                 <button onClick={() => setIsEditingProfile(false)} className="px-6 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5 rounded-lg">Cancel</button>
-                 <button onClick={() => { setPersona(editPersonaForm); setIsEditingProfile(false); }} className="px-6 py-2 bg-tcm-darkGreen text-white rounded-lg hover:bg-tcm-lightGreen">Save Changes</button>
+                 <button onClick={() => setIsEditingProfile(false)} className="px-6 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5 rounded-lg">取消</button>
+                 <button onClick={() => { setPersona(editPersonaForm); setIsEditingProfile(false); }} className="px-6 py-2 bg-tcm-darkGreen text-white rounded-lg hover:bg-tcm-lightGreen shadow-lg">保存更改</button>
               </div>
            </div>
         </div>
       )}
-
     </div>
   );
 };
+
+const toggleTheme = () => {}; // 占位逻辑，已在组件内部实现
 
 export default PublicPortal;

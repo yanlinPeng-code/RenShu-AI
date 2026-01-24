@@ -47,9 +47,9 @@ const PublicLoginPage: React.FC<PublicLoginPageProps> = ({ onLogin }) => {
     try {
       const res = await authApi.login(formData);
       console.log(res);
-      localStorage.setItem('access_token', res.data.access_token);
-      localStorage.setItem('refresh_token', res.data.refresh_token);
-      localStorage.setItem('user_id', res.data.user_id);
+      localStorage.setItem('user_access_token', res.data.access_token);
+      localStorage.setItem('user_refresh_token', res.data.refresh_token);
+      localStorage.setItem('user_user_id', res.data.user_id);
       
       // 保存记住的账号密码
       if (rememberMe) {

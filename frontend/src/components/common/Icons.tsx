@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ExternalLink,
   Stethoscope,
   User,
   Activity,
@@ -30,10 +31,12 @@ import {
   Sun,
   Moon,
   Image,
-  Plus
+  Plus,
+  Package
 } from 'lucide-react';
 
 export const Icons = {
+  ExternalLink,
   Stethoscope,
   User,
   Activity,
@@ -64,5 +67,6 @@ export const Icons = {
   Sun,
   Moon,
   Image,
-  Plus
+  Plus,
+  Package
 };

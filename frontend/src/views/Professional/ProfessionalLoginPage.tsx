@@ -37,9 +37,9 @@ const ProfessionalLoginPage: React.FC<ProfessionalLoginPageProps> = ({ onLogin }
     setError('');
     try {
       const res = await authApi.login(formData);
-      localStorage.setItem('access_token', res.data.access_token);
-      localStorage.setItem('refresh_token', res.data.refresh_token);
-      localStorage.setItem('user_id', res.data.user_id);
+      localStorage.setItem('professional_access_token', res.data.access_token);
+      localStorage.setItem('professional_refresh_token', res.data.refresh_token);
+      localStorage.setItem('professional_user_id', res.data.user_id);
       
       // 保存记住的账号密码
       if (rememberMe) {

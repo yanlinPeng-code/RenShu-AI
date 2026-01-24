@@ -135,3 +135,553 @@ DETAIL:  Key (user_id)=(cfe92ff2-d5d0-450d-b210-1ba1a6aa3ff8) is not present in 
 [2026-01-15 18:50:47] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
 [2026-01-15 18:50:47] ERROR [app] API异常: 用户名或密码错误
 [2026-01-15 21:24:56] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-17 13:15:07] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-17 17:01:21] ERROR [app] fastapi应用关闭
+[2026-01-17 17:20:37] ERROR [sql] ❌ 数据库事务失败: 'LanguageModelService' object has no attribute 'provider_service'
+[2026-01-17 17:20:37] CRITICAL [app] 未处理的异常: 'LanguageModelService' object has no attribute 'provider_service'
+[2026-01-17 17:20:48] ERROR [sql] ❌ 数据库事务失败: 'LanguageModelService' object has no attribute 'provider_service'
+[2026-01-17 17:20:48] CRITICAL [app] 未处理的异常: 'LanguageModelService' object has no attribute 'provider_service'
+[2026-01-17 18:30:39] ERROR [app] fastapi应用关闭
+[2026-01-17 18:32:10] ERROR [app] fastapi应用关闭
+[2026-01-17 18:36:26] ERROR [app] fastapi应用关闭
+[2026-01-17 18:46:27] ERROR [app] fastapi应用关闭
+[2026-01-17 18:49:14] ERROR [app] fastapi应用关闭
+[2026-01-17 18:51:09] ERROR [sql] ❌ 数据库事务失败: 1 validation error:
+  {'type': 'missing', 'loc': ('body', 'label'), 'msg': 'Field required', 'input': {'name': 'openai', 'description': 'dsadasd', 'icon': '', 'default_base_url': 'https://api.openai.com/v1', 'position': 1}}
+
+  File "D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\controller\model_config_controller.py", line 57, in create_provider
+    POST /api/v1/admin/provider/create
+[2026-01-17 18:52:30] ERROR [app] fastapi应用关闭
+[2026-01-17 18:53:49] ERROR [sql] ❌ 数据库事务失败: 供应商 'openai' 已存在
+[2026-01-17 18:53:49] ERROR [app] API异常: 供应商 'openai' 已存在
+[2026-01-17 18:54:06] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "model_providers" violates not-null constraint
+DETAIL:  Failing row contains (06f85eed-bb7b-460c-a82c-6b553a2b0424, openai, null, dsadasd, , #FFFFFF, https://api.openai.com/v1, ["chat"], null, t, t, 1, 2026-01-17 18:54:06.178415, 2026-01-17 18:54:06.178415).
+[SQL: INSERT INTO model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::BOOLEAN, $11::BOOLEAN, $12::INTEGER, $13::TIMESTAMP WITHOUT TIME ZONE, $14::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('06f85eed-bb7b-460c-a82c-6b553a2b0424'), 'openai', None, 'dsadasd', '', '#FFFFFF', 'https://api.openai.com/v1', '["chat"]', None, True, True, 1, datetime.datetime(2026, 1, 17, 18, 54, 6, 178415), datetime.datetime(2026, 1, 17, 18, 54, 6, 178415))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-17 18:54:06] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "model_providers" violates not-null constraint
+DETAIL:  Failing row contains (06f85eed-bb7b-460c-a82c-6b553a2b0424, openai, null, dsadasd, , #FFFFFF, https://api.openai.com/v1, ["chat"], null, t, t, 1, 2026-01-17 18:54:06.178415, 2026-01-17 18:54:06.178415).
+[SQL: INSERT INTO model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::BOOLEAN, $11::BOOLEAN, $12::INTEGER, $13::TIMESTAMP WITHOUT TIME ZONE, $14::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('06f85eed-bb7b-460c-a82c-6b553a2b0424'), 'openai', None, 'dsadasd', '', '#FFFFFF', 'https://api.openai.com/v1', '["chat"]', None, True, True, 1, datetime.datetime(2026, 1, 17, 18, 54, 6, 178415), datetime.datetime(2026, 1, 17, 18, 54, 6, 178415))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-17 18:57:44] ERROR [app] fastapi应用关闭
+[2026-01-17 18:58:00] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "model_providers" violates not-null constraint
+DETAIL:  Failing row contains (698eb5b2-5252-44e0-984c-c069af04df14, openai, null, dsadasd, , #FFFFFF, https://api.openai.com/v1, ["chat"], null, t, t, 1, 2026-01-17 18:58:00.968458, 2026-01-17 18:58:00.968458).
+[SQL: INSERT INTO model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::BOOLEAN, $11::BOOLEAN, $12::INTEGER, $13::TIMESTAMP WITHOUT TIME ZONE, $14::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('698eb5b2-5252-44e0-984c-c069af04df14'), 'openai', None, 'dsadasd', '', '#FFFFFF', 'https://api.openai.com/v1', '["chat"]', None, True, True, 1, datetime.datetime(2026, 1, 17, 18, 58, 0, 968458), datetime.datetime(2026, 1, 17, 18, 58, 0, 968458))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-17 18:58:00] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "model_providers" violates not-null constraint
+DETAIL:  Failing row contains (698eb5b2-5252-44e0-984c-c069af04df14, openai, null, dsadasd, , #FFFFFF, https://api.openai.com/v1, ["chat"], null, t, t, 1, 2026-01-17 18:58:00.968458, 2026-01-17 18:58:00.968458).
+[SQL: INSERT INTO model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::BOOLEAN, $11::BOOLEAN, $12::INTEGER, $13::TIMESTAMP WITHOUT TIME ZONE, $14::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('698eb5b2-5252-44e0-984c-c069af04df14'), 'openai', None, 'dsadasd', '', '#FFFFFF', 'https://api.openai.com/v1', '["chat"]', None, True, True, 1, datetime.datetime(2026, 1, 17, 18, 58, 0, 968458), datetime.datetime(2026, 1, 17, 18, 58, 0, 968458))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-17 19:00:58] ERROR [app] fastapi应用关闭
+[2026-01-17 19:01:21] ERROR [sql] ❌ 数据库事务失败: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(name=...es=['chat'], position=1), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-17 19:01:21] CRITICAL [app] 未处理的异常: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(name=...es=['chat'], position=1), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-17 19:07:02] ERROR [app] fastapi应用关闭
+[2026-01-17 19:58:33] ERROR [sql] ❌ 数据库事务失败: 内置供应商不可删除
+[2026-01-17 19:58:33] ERROR [app] API异常: 内置供应商不可删除
+[2026-01-17 20:07:05] ERROR [sql] ❌ 数据库事务失败: 内置供应商不可删除
+[2026-01-17 20:07:05] ERROR [app] API异常: 内置供应商不可删除
+[2026-01-17 20:07:24] ERROR [app] fastapi应用关闭
+[2026-01-17 20:18:32] ERROR [sql] ❌ 数据库事务失败: 供应商不存在
+[2026-01-17 20:18:32] ERROR [app] API异常: 供应商不存在
+[2026-01-17 20:33:58] ERROR [sql] ❌ 数据库事务失败: 供应商不存在
+[2026-01-17 20:33:58] ERROR [app] API异常: 供应商不存在
+[2026-01-17 20:37:46] ERROR [sql] ❌ 数据库事务失败: 供应商不存在
+[2026-01-17 20:37:46] ERROR [app] API异常: 供应商不存在
+[2026-01-17 20:51:09] ERROR [app] fastapi应用关闭
+[2026-01-17 20:55:52] ERROR [app] fastapi应用关闭
+[2026-01-17 20:57:31] ERROR [app] fastapi应用关闭
+[2026-01-17 22:05:08] ERROR [sql] ❌ 数据库事务失败: 1 validation error:
+  {'type': 'missing', 'loc': ('body', 'label'), 'msg': 'Field required', 'input': {'model_name': 'qwen-max', 'description': '一个阿里的强力模型', 'model_type': 'llm', 'context_window': 12000, 'max_output_tokens': 4096, 'default_temperature': 0.69, 'provider_id': '8a11be29-e40d-476c-a1e0-6957e5c9784c', 'position': 1}}
+
+  File "D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\controller\model_config_controller.py", line 137, in create_model_config
+    POST /api/v1/admin/model/config/create
+[2026-01-17 23:11:44] ERROR [app] fastapi应用关闭
+[2026-01-18 14:25:19] ERROR [app] fastapi应用关闭
+[2026-01-18 14:36:28] ERROR [sql] ❌ 数据库事务失败: 'ModelConfig' object has no attribute 'max_output_tokens'
+[2026-01-18 14:36:28] CRITICAL [app] 未处理的异常: 'ModelConfig' object has no attribute 'max_output_tokens'
+[2026-01-18 14:38:52] ERROR [app] fastapi应用关闭
+[2026-01-18 14:48:52] ERROR [app] fastapi应用关闭
+[2026-01-18 15:13:29] ERROR [app] fastapi应用关闭
+[2026-01-18 15:18:29] ERROR [app] fastapi应用关闭
+[2026-01-18 15:18:43] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_configs.is_builtin does not exist
+[SQL: SELECT model_configs.id, model_configs.provider_id, model_configs.model_name, model_configs.label, model_configs.description, model_configs.model_type, model_configs.features, model_configs.context_window, model_configs.default_temperature, model_configs.default_top_p, model_configs.default_max_tokens, model_configs.default_parameters, model_configs.is_enabled, model_configs.is_builtin, model_configs.position, model_configs.created_at, model_configs.updated_at 
+FROM model_configs 
+WHERE model_configs.provider_id = $1::UUID ORDER BY model_configs.position]
+[parameters: (UUID('d0b8f80d-1f3d-4a06-bd01-1ffd6e3ca021'),)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-18 15:18:43] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_configs.is_builtin does not exist
+[SQL: SELECT model_configs.id, model_configs.provider_id, model_configs.model_name, model_configs.label, model_configs.description, model_configs.model_type, model_configs.features, model_configs.context_window, model_configs.default_temperature, model_configs.default_top_p, model_configs.default_max_tokens, model_configs.default_parameters, model_configs.is_enabled, model_configs.is_builtin, model_configs.position, model_configs.created_at, model_configs.updated_at 
+FROM model_configs 
+WHERE model_configs.provider_id = $1::UUID ORDER BY model_configs.position]
+[parameters: (UUID('d0b8f80d-1f3d-4a06-bd01-1ffd6e3ca021'),)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-18 15:23:11] ERROR [app] fastapi应用关闭
+[2026-01-18 16:23:15] ERROR [app] fastapi应用关闭
+[2026-01-18 16:23:35] ERROR [sql] ❌ 数据库事务失败: 1 validation error:
+  {'type': 'missing', 'loc': ('body', 'config_id'), 'msg': 'Field required', 'input': {'model_config_id': 'ba1e09b0-2b21-4f6d-899f-dd7d0a4e8d7e'}}
+
+  File "D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\controller\model_config_controller.py", line 185, in delete_model_config
+    POST /api/v1/admin/model/config/delete
+[2026-01-18 16:24:58] ERROR [app] fastapi应用关闭
+[2026-01-18 16:25:58] ERROR [sql] ❌ 数据库事务失败: 1 validation error:
+  {'type': 'missing', 'loc': ('body', 'config_id'), 'msg': 'Field required', 'input': {'model_config_id': 'd6f23057-3903-423c-aeac-b13c05244cd7', 'description': 'asdas', 'model_type': 'llm', 'context_window': 150000, 'default_max_tokens': 4096, 'default_temperature': 0.7, 'default_top_p': 1, 'is_enabled': True}}
+
+  File "D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\controller\model_config_controller.py", line 160, in update_model_config
+    POST /api/v1/admin/model/config/update
+[2026-01-18 16:26:52] ERROR [app] fastapi应用关闭
+[2026-01-18 16:27:05] ERROR [sql] ❌ 数据库事务失败: "ModelConfig" object has no field "model_config_id"
+[2026-01-18 16:27:05] CRITICAL [app] 未处理的异常: "ModelConfig" object has no field "model_config_id"
+[2026-01-18 16:28:00] ERROR [app] fastapi应用关闭
+[2026-01-18 18:18:14] ERROR [sql] ❌ 数据库事务失败: 用户 pyan83426@gmail.com 不存在
+[2026-01-18 18:18:14] ERROR [app] API异常: 用户 pyan83426@gmail.com 不存在
+[2026-01-18 21:23:25] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-18 21:23:25] ERROR [app] API异常: 用户名或密码错误
+[2026-01-18 21:40:13] ERROR [app] fastapi应用关闭
+[2026-01-19 12:21:29] ERROR [app] fastapi应用关闭
+[2026-01-19 13:39:47] ERROR [app] fastapi应用关闭
+[2026-01-20 19:39:21] ERROR [sql] ❌ 数据库事务失败: 用户名或密码错误
+[2026-01-20 19:39:21] ERROR [app] API异常: 用户名或密码错误
+[2026-01-20 22:40:18] ERROR [app] fastapi应用关闭
+[2026-01-20 23:16:12] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-20 23:16:12] ERROR [sql] ❌ 数据库事务失败: 未知的token
+[2026-01-20 23:16:12] ERROR [app] API异常: 未知的token
+[2026-01-20 23:43:12] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:43:12] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:54:05] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:54:05] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:54:05] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:54:05] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:54:05] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-20 23:54:05] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 09:38:15] ERROR [app] fastapi应用关闭
+[2026-01-21 14:51:20] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 14:51:20] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 14:51:20] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 14:51:20] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 14:51:20] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 14:51:20] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.base_url does not exist
+[SQL: SELECT model_providers.id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 15:00:16] ERROR [app] fastapi应用关闭
+[2026-01-21 15:05:17] ERROR [app] fastapi应用关闭
+[2026-01-21 15:10:18] ERROR [app] fastapi应用关闭
+[2026-01-21 15:23:01] ERROR [app] fastapi应用关闭
+[2026-01-21 16:20:39] ERROR [app] fastapi应用关闭
+[2026-01-21 16:25:41] ERROR [app] fastapi应用关闭
+[2026-01-21 16:27:32] ERROR [app] fastapi应用关闭
+[2026-01-21 16:28:23] ERROR [sql] ❌ 数据库事务失败: 'ModelProviderCreate' object does not support item assignment
+[2026-01-21 16:28:23] CRITICAL [app] 未处理的异常: 'ModelProviderCreate' object does not support item assignment
+[2026-01-21 16:30:14] ERROR [app] fastapi应用关闭
+[2026-01-21 16:30:31] ERROR [sql] ❌ 数据库事务失败: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:30:31] CRITICAL [app] 未处理的异常: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:31:58] ERROR [app] fastapi应用关闭
+[2026-01-21 16:32:27] ERROR [sql] ❌ 数据库事务失败: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:32:27] CRITICAL [app] 未处理的异常: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:33:08] ERROR [app] fastapi应用关闭
+[2026-01-21 16:33:58] ERROR [sql] ❌ 数据库事务失败: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:33:58] CRITICAL [app] 未处理的异常: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:33:59] ERROR [sql] ❌ 数据库事务失败: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:33:59] CRITICAL [app] 未处理的异常: 1 validation error for ModelProvider
+label
+  Field required [type=missing, input_value=ModelProviderCreate(role=...ultimodal'], position=3), input_type=ModelProviderCreate]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+[2026-01-21 16:35:00] ERROR [app] fastapi应用关闭
+[2026-01-21 16:35:16] ERROR [sql] ❌ 数据库事务失败: 'ModelProviderCreate' object does not support item assignment
+[2026-01-21 16:35:16] CRITICAL [app] 未处理的异常: 'ModelProviderCreate' object does not support item assignment
+[2026-01-21 16:36:42] ERROR [app] fastapi应用关闭
+[2026-01-21 16:41:43] ERROR [app] fastapi应用关闭
+[2026-01-21 21:27:39] ERROR [app] fastapi应用关闭
+[2026-01-21 21:31:00] ERROR [sql] ❌ 数据库事务失败: object str can't be used in 'await' expression
+[2026-01-21 21:31:00] CRITICAL [app] 未处理的异常: object str can't be used in 'await' expression
+[2026-01-21 21:32:43] ERROR [app] fastapi应用关闭
+[2026-01-21 21:34:15] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_configs.created_by does not exist
+HINT:  Perhaps you meant to reference the column "model_configs.create_by".
+[SQL: SELECT model_configs.id, model_configs.created_by, model_configs.provider_id, model_configs.model_name, model_configs.label, model_configs.description, model_configs.model_type, model_configs.features, model_configs.context_window, model_configs.default_temperature, model_configs.default_top_p, model_configs.default_max_tokens, model_configs.default_parameters, model_configs.is_enabled, model_configs.is_builtin, model_configs.position, model_configs.created_at, model_configs.updated_at 
+FROM model_configs 
+WHERE model_configs.provider_id = $1::UUID ORDER BY model_configs.position]
+[parameters: (UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'),)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 21:34:15] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_configs.created_by does not exist
+HINT:  Perhaps you meant to reference the column "model_configs.create_by".
+[SQL: SELECT model_configs.id, model_configs.created_by, model_configs.provider_id, model_configs.model_name, model_configs.label, model_configs.description, model_configs.model_type, model_configs.features, model_configs.context_window, model_configs.default_temperature, model_configs.default_top_p, model_configs.default_max_tokens, model_configs.default_parameters, model_configs.is_enabled, model_configs.is_builtin, model_configs.position, model_configs.created_at, model_configs.updated_at 
+FROM model_configs 
+WHERE model_configs.provider_id = $1::UUID ORDER BY model_configs.position]
+[parameters: (UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'),)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-21 21:38:22] ERROR [app] fastapi应用关闭
+[2026-01-21 21:43:16] ERROR [sql] ❌ 数据库事务失败: "ModelConfig" object has no field "created_by"
+[2026-01-21 21:43:16] CRITICAL [app] 未处理的异常: "ModelConfig" object has no field "created_by"
+[2026-01-21 21:44:41] ERROR [app] fastapi应用关闭
+[2026-01-21 21:44:58] ERROR [sql] ❌ 数据库事务失败: "ModelConfig" object has no field "created_by"
+[2026-01-21 21:44:58] CRITICAL [app] 未处理的异常: "ModelConfig" object has no field "created_by"
+[2026-01-21 21:45:49] ERROR [app] fastapi应用关闭
+[2026-01-22 09:35:02] ERROR [app] fastapi应用关闭
+[2026-01-22 18:38:16] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(ollama) already exists.
+[SQL: INSERT INTO model_providers (id, create_by, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::JSON, $11::VARCHAR, $12::BOOLEAN, $13::BOOLEAN, $14::INTEGER, $15::TIMESTAMP WITHOUT TIME ZONE, $16::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('6ae194ce-38e0-4a5c-9957-76dd46742f82'), UUID('aa7fa342-7748-48dd-a116-83f2d39d6c40'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', 'https://api.ollama.ai/v1', None, '["llm"]', 'https://ollama.ai/', True, True, 3, datetime.datetime(2026, 1, 22, 18, 38, 16, 62900), datetime.datetime(2026, 1, 22, 18, 38, 16, 62900))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-22 18:38:16] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(ollama) already exists.
+[SQL: INSERT INTO model_providers (id, create_by, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::JSON, $11::VARCHAR, $12::BOOLEAN, $13::BOOLEAN, $14::INTEGER, $15::TIMESTAMP WITHOUT TIME ZONE, $16::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('6ae194ce-38e0-4a5c-9957-76dd46742f82'), UUID('aa7fa342-7748-48dd-a116-83f2d39d6c40'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', 'https://api.ollama.ai/v1', None, '["llm"]', 'https://ollama.ai/', True, True, 3, datetime.datetime(2026, 1, 22, 18, 38, 16, 62900), datetime.datetime(2026, 1, 22, 18, 38, 16, 62900))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-22 19:44:15] ERROR [sql] ❌ 数据库事务失败: 邮箱已存在
+[2026-01-22 19:44:15] ERROR [app] API异常: 邮箱已存在
+[2026-01-22 19:44:31] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "users_username_key"
+DETAIL:  Key (username)=(peng) already exists.
+[SQL: INSERT INTO users (id, username, email, password_hash, role, real_name, phone, gender, birth_date, constitution_type, avatar_url, is_active, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::DATE, $10::VARCHAR, $11::VARCHAR, $12::BOOLEAN, $13::TIMESTAMP WITHOUT TIME ZONE, $14::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('b2c4fcb2-c527-425c-81ad-cebdbe78affe'), 'peng', '2725644330@qq.com', '$2b$12$AelynCerDuNnlWYYNUaax.mk2ntsLvIQ.ir0mj68XXXnxuKLr.LVC', 'patient', None, None, None, None, None, None, True, datetime.datetime(2026, 1, 22, 19, 44, 31, 913611), datetime.datetime(2026, 1, 22, 19, 44, 31, 914684))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-22 19:44:31] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "users_username_key"
+DETAIL:  Key (username)=(peng) already exists.
+[SQL: INSERT INTO users (id, username, email, password_hash, role, real_name, phone, gender, birth_date, constitution_type, avatar_url, is_active, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::DATE, $10::VARCHAR, $11::VARCHAR, $12::BOOLEAN, $13::TIMESTAMP WITHOUT TIME ZONE, $14::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('b2c4fcb2-c527-425c-81ad-cebdbe78affe'), 'peng', '2725644330@qq.com', '$2b$12$AelynCerDuNnlWYYNUaax.mk2ntsLvIQ.ir0mj68XXXnxuKLr.LVC', 'patient', None, None, None, None, None, None, True, datetime.datetime(2026, 1, 22, 19, 44, 31, 913611), datetime.datetime(2026, 1, 22, 19, 44, 31, 914684))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-22 20:37:16] ERROR [sql] ❌ 数据库事务失败: Multiple classes found for path "Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 20:48:44] ERROR [app] fastapi应用关闭
+[2026-01-22 20:54:27] ERROR [app] fastapi应用关闭
+[2026-01-22 20:57:20] ERROR [app] fastapi应用关闭
+[2026-01-22 20:57:43] ERROR [app] fastapi应用关闭
+[2026-01-22 20:58:08] ERROR [app] fastapi应用关闭
+[2026-01-22 20:58:50] ERROR [sql] ❌ 数据库事务失败: Multiple classes found for path "Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 20:58:50] ERROR [AuthMiddleware] 加载用户角色失败: Multiple classes found for path "Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 20:58:50] ERROR [sql] ❌ 数据库事务失败: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 20:58:50] CRITICAL [app] 未处理的异常: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:03:21] ERROR [app] fastapi应用关闭
+[2026-01-22 21:05:12] ERROR [sql] ❌ 数据库事务失败: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:05:12] ERROR [AuthMiddleware] 加载用户角色失败: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:05:12] ERROR [sql] ❌ 数据库事务失败: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:05:12] CRITICAL [app] 未处理的异常: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:07:10] ERROR [app] fastapi应用关闭
+[2026-01-22 21:07:52] ERROR [sql] ❌ 数据库事务失败: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:07:52] ERROR [AuthMiddleware] 加载用户角色失败: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:07:52] ERROR [sql] ❌ 数据库事务失败: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:07:52] CRITICAL [app] 未处理的异常: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:10:38] ERROR [app] fastapi应用关闭
+[2026-01-22 21:10:57] ERROR [sql] ❌ 数据库事务失败: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:10:57] ERROR [AuthMiddleware] 加载用户角色失败: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:10:57] ERROR [sql] ❌ 数据库事务失败: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:10:57] CRITICAL [app] 未处理的异常: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[Account(accounts)]'. Original exception was: Multiple classes found for path "app.src.model.account_model.Patient" in the registry of this declarative base. Please use a fully module-qualified path.
+[2026-01-22 21:18:16] ERROR [app] fastapi应用关闭
+[2026-01-22 21:18:34] ERROR [sql] ❌ 数据库事务失败: 账户不存在
+[2026-01-22 21:18:35] ERROR [app] API异常: 账户不存在
+[2026-01-22 21:18:35] ERROR [sql] ❌ 数据库事务失败: 账户不存在
+[2026-01-22 21:18:35] ERROR [app] API异常: 账户不存在
+[2026-01-22 21:19:10] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:10] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:10] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:53] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:53] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:53] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:55] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:19:55] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:20:01] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:20:01] ERROR [sql] ❌ 数据库事务失败: 403: 需要以下角色之一: admin, super_admin
+[2026-01-22 21:28:17] ERROR [app] fastapi应用关闭
+[2026-01-22 21:33:09] ERROR [app] fastapi应用关闭
+[2026-01-22 21:34:30] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.user_id does not exist
+[SQL: SELECT model_providers.id, model_providers.create_by, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-22 21:34:30] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.user_id does not exist
+[SQL: SELECT model_providers.id, model_providers.create_by, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-22 21:34:30] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.user_id does not exist
+[SQL: SELECT model_providers.id, model_providers.create_by, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-22 21:34:30] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.user_id does not exist
+[SQL: SELECT model_providers.id, model_providers.create_by, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-22 21:34:30] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.user_id does not exist
+[SQL: SELECT model_providers.id, model_providers.create_by, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-22 21:34:30] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column model_providers.user_id does not exist
+[SQL: SELECT model_providers.id, model_providers.create_by, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+[2026-01-22 21:43:10] ERROR [app] fastapi应用关闭
+[2026-01-22 21:48:11] ERROR [app] fastapi应用关闭
+[2026-01-22 21:53:11] ERROR [app] fastapi应用关闭
+[2026-01-22 21:57:58] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.InFailedSQLTransactionError'>: current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT model_providers.id, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/dbapi)
+[2026-01-22 21:57:58] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.InFailedSQLTransactionError'>: current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT model_providers.id, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/dbapi)
+[2026-01-22 21:57:58] ERROR [app] fastapi应用关闭
+[2026-01-22 21:58:11] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.InFailedSQLTransactionError'>: current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT model_providers.id, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/dbapi)
+[2026-01-22 21:58:11] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.InFailedSQLTransactionError'>: current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT model_providers.id, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/dbapi)
+[2026-01-22 21:58:11] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.InFailedSQLTransactionError'>: current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT model_providers.id, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/dbapi)
+[2026-01-22 21:58:11] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.InFailedSQLTransactionError'>: current transaction is aborted, commands ignored until end of transaction block
+[SQL: SELECT model_providers.id, model_providers.user_id, model_providers.template_id, model_providers.name, model_providers.label, model_providers.description, model_providers.icon, model_providers.icon_background, model_providers.base_url, model_providers.api_key, model_providers.supported_model_types, model_providers.help_url, model_providers.is_builtin, model_providers.is_enabled, model_providers.position, model_providers.created_at, model_providers.updated_at 
+FROM model_providers 
+WHERE model_providers.is_builtin = true ORDER BY model_providers.position]
+(Background on this error at: https://sqlalche.me/e/20/dbapi)
+[2026-01-22 21:59:28] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:28] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:28] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:28] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:28] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:28] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:38] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:38] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:38] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:38] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:38] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 21:59:38] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:01:20] ERROR [app] fastapi应用关闭
+[2026-01-22 22:02:06] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:06] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:06] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:06] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:06] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:06] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:07] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:07] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:08] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:08] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:08] ERROR [sql] ❌ 数据库事务失败: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:02:08] CRITICAL [app] 未处理的异常: Can't operate on closed transaction inside context manager.  Please complete the context manager before emitting further commands.
+[2026-01-22 22:04:30] ERROR [app] fastapi应用关闭
+[2026-01-22 22:04:47] ERROR [sql] ❌ 数据库事务失败: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(zhipu) already exists.
+[SQL: INSERT INTO model_providers (id, user_id, template_id, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::VARCHAR, $11::JSON, $12::VARCHAR, $13::BOOLEAN, $14::BOOLEAN, $15::INTEGER, $16::TIMESTAMP WITHOUT TIME ZONE, $17::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: [(UUID('55b49ee3-e21a-4b19-9b9a-a50ad8a2268d'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('fbe75732-0a26-4695-b30b-ed2ece8604bb'), 'zhipu', 'Zhipu AI', '', '', '#FFFFFF', 'https://api.zhipuai.cn/v1', None, '["llm", "code", "multimodal", "image"]', 'https://www.zhipuai.cn/', False, True, 2, datetime.datetime(2026, 1, 22, 22, 4, 47, 250906), datetime.datetime(2026, 1, 22, 22, 4, 47, 251423)), (UUID('3cff039e-0260-4268-9f11-469b420c2002'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('5283d005-4846-4d53-9662-4595114a7389'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', None, None, '["llm"]', 'https://ollama.ai/', False, True, 3, datetime.datetime(2026, 1, 22, 22, 4, 47, 252432), datetime.datetime(2026, 1, 22, 22, 4, 47, 252432)), (UUID('636996bf-b18f-443f-be9a-cef374c46b30'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('4d9bb7b3-8957-4c83-82d6-895000c4500f'), 'anthropic', 'Anthropic', '', '', '#FFFFFF', None, None, '["llm", "code"]', 'https://www.anthropic.com/', False, True, 4, datetime.datetime(2026, 1, 22, 22, 4, 47, 253984), datetime.datetime(2026, 1, 22, 22, 4, 47, 253984)), (UUID('9830d32b-0a58-4332-9212-e0abb4ccc3bb'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('ed14128c-b51f-4eb2-9dea-f35353413c0f'), 'bytedance', 'Bytedance', '', '', '#FFFFFF', None, None, '["llm"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 253984), datetime.datetime(2026, 1, 22, 22, 4, 47, 255527)), (UUID('8b22fd7a-0358-4dad-985e-bbabb552f2c1'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('790c0e7d-0d5e-43ae-84a4-7e60f251f74b'), 'bailian', 'Bailian', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "image", "code"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 255527), datetime.datetime(2026, 1, 22, 22, 4, 47, 255527)), (UUID('38a062f5-d3e6-4ea4-95a5-e1b644c03e85'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('1a77b39d-382f-444e-b999-f78739a22b60'), 'minimax', 'Minimax', '', '', '#FFFFFF', None, None, '["llm", "image", "audio", "code"]', None, False, True, 7, datetime.datetime(2026, 1, 22, 22, 4, 47, 257085), datetime.datetime(2026, 1, 22, 22, 4, 47, 258606)), (UUID('a170e9f0-4d03-4b55-965b-8f84b139b2e8'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('8b675939-84e4-446d-a499-b1d35cb9c825'), 'moonshot', 'Moonshot', '', '', '#FFFFFF', None, None, '["llm", "code"]', None, False, True, 8, datetime.datetime(2026, 1, 22, 22, 4, 47, 258606), datetime.datetime(2026, 1, 22, 22, 4, 47, 258606)), (UUID('cd2dbdff-ac5e-4a07-b1b9-77f989d96767'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('f371d7e3-2cc2-48ba-9550-56ae87e989d7'), 'openrouter', 'Openrouter', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', None, False, True, 9, datetime.datetime(2026, 1, 22, 22, 4, 47, 260163), datetime.datetime(2026, 1, 22, 22, 4, 47, 260163))  ... displaying 10 of 11 total bound parameter sets ...  (UUID('f3bc0399-21fd-4e15-93bf-bf16b33020c2'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'), 'openai', 'OpenAI', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', 'https://platform.openai.com/', False, False, 1, datetime.datetime(2026, 1, 22, 22, 4, 47, 261703), datetime.datetime(2026, 1, 22, 22, 4, 47, 261703)), (UUID('80cd6472-b65b-4091-beeb-b7245a58c644'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('7a22dc41-00aa-4253-912c-908282d6e38b'), 'xinference', 'Xinference', '', '', '#FFFFFF', None, None, '["llm", "code", "multimodal", "embedding", "rerank", "image", "audio", "video"]', None, False, False, 11, datetime.datetime(2026, 1, 22, 22, 4, 47, 261703), datetime.datetime(2026, 1, 22, 22, 4, 47, 261703))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+[2026-01-22 22:04:47] CRITICAL [app] 未处理的异常: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(zhipu) already exists.
+[SQL: INSERT INTO model_providers (id, user_id, template_id, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::VARCHAR, $11::JSON, $12::VARCHAR, $13::BOOLEAN, $14::BOOLEAN, $15::INTEGER, $16::TIMESTAMP WITHOUT TIME ZONE, $17::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: [(UUID('55b49ee3-e21a-4b19-9b9a-a50ad8a2268d'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('fbe75732-0a26-4695-b30b-ed2ece8604bb'), 'zhipu', 'Zhipu AI', '', '', '#FFFFFF', 'https://api.zhipuai.cn/v1', None, '["llm", "code", "multimodal", "image"]', 'https://www.zhipuai.cn/', False, True, 2, datetime.datetime(2026, 1, 22, 22, 4, 47, 250906), datetime.datetime(2026, 1, 22, 22, 4, 47, 251423)), (UUID('3cff039e-0260-4268-9f11-469b420c2002'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('5283d005-4846-4d53-9662-4595114a7389'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', None, None, '["llm"]', 'https://ollama.ai/', False, True, 3, datetime.datetime(2026, 1, 22, 22, 4, 47, 252432), datetime.datetime(2026, 1, 22, 22, 4, 47, 252432)), (UUID('636996bf-b18f-443f-be9a-cef374c46b30'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('4d9bb7b3-8957-4c83-82d6-895000c4500f'), 'anthropic', 'Anthropic', '', '', '#FFFFFF', None, None, '["llm", "code"]', 'https://www.anthropic.com/', False, True, 4, datetime.datetime(2026, 1, 22, 22, 4, 47, 253984), datetime.datetime(2026, 1, 22, 22, 4, 47, 253984)), (UUID('9830d32b-0a58-4332-9212-e0abb4ccc3bb'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('ed14128c-b51f-4eb2-9dea-f35353413c0f'), 'bytedance', 'Bytedance', '', '', '#FFFFFF', None, None, '["llm"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 253984), datetime.datetime(2026, 1, 22, 22, 4, 47, 255527)), (UUID('8b22fd7a-0358-4dad-985e-bbabb552f2c1'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('790c0e7d-0d5e-43ae-84a4-7e60f251f74b'), 'bailian', 'Bailian', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "image", "code"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 255527), datetime.datetime(2026, 1, 22, 22, 4, 47, 255527)), (UUID('38a062f5-d3e6-4ea4-95a5-e1b644c03e85'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('1a77b39d-382f-444e-b999-f78739a22b60'), 'minimax', 'Minimax', '', '', '#FFFFFF', None, None, '["llm", "image", "audio", "code"]', None, False, True, 7, datetime.datetime(2026, 1, 22, 22, 4, 47, 257085), datetime.datetime(2026, 1, 22, 22, 4, 47, 258606)), (UUID('a170e9f0-4d03-4b55-965b-8f84b139b2e8'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('8b675939-84e4-446d-a499-b1d35cb9c825'), 'moonshot', 'Moonshot', '', '', '#FFFFFF', None, None, '["llm", "code"]', None, False, True, 8, datetime.datetime(2026, 1, 22, 22, 4, 47, 258606), datetime.datetime(2026, 1, 22, 22, 4, 47, 258606)), (UUID('cd2dbdff-ac5e-4a07-b1b9-77f989d96767'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('f371d7e3-2cc2-48ba-9550-56ae87e989d7'), 'openrouter', 'Openrouter', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', None, False, True, 9, datetime.datetime(2026, 1, 22, 22, 4, 47, 260163), datetime.datetime(2026, 1, 22, 22, 4, 47, 260163))  ... displaying 10 of 11 total bound parameter sets ...  (UUID('f3bc0399-21fd-4e15-93bf-bf16b33020c2'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'), 'openai', 'OpenAI', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', 'https://platform.openai.com/', False, False, 1, datetime.datetime(2026, 1, 22, 22, 4, 47, 261703), datetime.datetime(2026, 1, 22, 22, 4, 47, 261703)), (UUID('80cd6472-b65b-4091-beeb-b7245a58c644'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('7a22dc41-00aa-4253-912c-908282d6e38b'), 'xinference', 'Xinference', '', '', '#FFFFFF', None, None, '["llm", "code", "multimodal", "embedding", "rerank", "image", "audio", "video"]', None, False, False, 11, datetime.datetime(2026, 1, 22, 22, 4, 47, 261703), datetime.datetime(2026, 1, 22, 22, 4, 47, 261703))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+[2026-01-22 22:04:47] ERROR [sql] ❌ 数据库事务失败: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(zhipu) already exists.
+[SQL: INSERT INTO model_providers (id, user_id, template_id, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::VARCHAR, $11::JSON, $12::VARCHAR, $13::BOOLEAN, $14::BOOLEAN, $15::INTEGER, $16::TIMESTAMP WITHOUT TIME ZONE, $17::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: [(UUID('792ba76f-af03-438e-9cf1-f9b6c1420bf8'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('fbe75732-0a26-4695-b30b-ed2ece8604bb'), 'zhipu', 'Zhipu AI', '', '', '#FFFFFF', 'https://api.zhipuai.cn/v1', None, '["llm", "code", "multimodal", "image"]', 'https://www.zhipuai.cn/', False, True, 2, datetime.datetime(2026, 1, 22, 22, 4, 47, 356224), datetime.datetime(2026, 1, 22, 22, 4, 47, 356224)), (UUID('aab1d800-f566-4544-aee0-e93215766998'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('5283d005-4846-4d53-9662-4595114a7389'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', None, None, '["llm"]', 'https://ollama.ai/', False, True, 3, datetime.datetime(2026, 1, 22, 22, 4, 47, 356224), datetime.datetime(2026, 1, 22, 22, 4, 47, 357764)), (UUID('1628e31c-6e64-466a-8e93-02ad6ee9c235'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('4d9bb7b3-8957-4c83-82d6-895000c4500f'), 'anthropic', 'Anthropic', '', '', '#FFFFFF', None, None, '["llm", "code"]', 'https://www.anthropic.com/', False, True, 4, datetime.datetime(2026, 1, 22, 22, 4, 47, 359201), datetime.datetime(2026, 1, 22, 22, 4, 47, 359201)), (UUID('14a795b2-9b53-4f0a-8610-3b4ebe24f965'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('ed14128c-b51f-4eb2-9dea-f35353413c0f'), 'bytedance', 'Bytedance', '', '', '#FFFFFF', None, None, '["llm"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 360753), datetime.datetime(2026, 1, 22, 22, 4, 47, 360753)), (UUID('6a9624ef-f189-4246-abf5-e14543168800'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('790c0e7d-0d5e-43ae-84a4-7e60f251f74b'), 'bailian', 'Bailian', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "image", "code"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 362356), datetime.datetime(2026, 1, 22, 22, 4, 47, 362356)), (UUID('c76359a4-66bf-4282-9054-95542973e37a'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('1a77b39d-382f-444e-b999-f78739a22b60'), 'minimax', 'Minimax', '', '', '#FFFFFF', None, None, '["llm", "image", "audio", "code"]', None, False, True, 7, datetime.datetime(2026, 1, 22, 22, 4, 47, 362356), datetime.datetime(2026, 1, 22, 22, 4, 47, 362356)), (UUID('7e6169ff-d61f-4dc9-90ac-d8c2a7676255'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('8b675939-84e4-446d-a499-b1d35cb9c825'), 'moonshot', 'Moonshot', '', '', '#FFFFFF', None, None, '["llm", "code"]', None, False, True, 8, datetime.datetime(2026, 1, 22, 22, 4, 47, 363908), datetime.datetime(2026, 1, 22, 22, 4, 47, 363908)), (UUID('444788b0-4541-45ab-898b-e35c6b8360a4'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('f371d7e3-2cc2-48ba-9550-56ae87e989d7'), 'openrouter', 'Openrouter', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', None, False, True, 9, datetime.datetime(2026, 1, 22, 22, 4, 47, 363908), datetime.datetime(2026, 1, 22, 22, 4, 47, 365483))  ... displaying 10 of 11 total bound parameter sets ...  (UUID('5ef886c9-de5e-43e6-880f-9c5cb749d6bf'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'), 'openai', 'OpenAI', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', 'https://platform.openai.com/', False, False, 1, datetime.datetime(2026, 1, 22, 22, 4, 47, 367046), datetime.datetime(2026, 1, 22, 22, 4, 47, 367046)), (UUID('bcbcd36a-afd0-4e6a-93f9-ddcb91d3524d'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('7a22dc41-00aa-4253-912c-908282d6e38b'), 'xinference', 'Xinference', '', '', '#FFFFFF', None, None, '["llm", "code", "multimodal", "embedding", "rerank", "image", "audio", "video"]', None, False, False, 11, datetime.datetime(2026, 1, 22, 22, 4, 47, 368066), datetime.datetime(2026, 1, 22, 22, 4, 47, 368618))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+[2026-01-22 22:04:47] CRITICAL [app] 未处理的异常: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(zhipu) already exists.
+[SQL: INSERT INTO model_providers (id, user_id, template_id, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::VARCHAR, $11::JSON, $12::VARCHAR, $13::BOOLEAN, $14::BOOLEAN, $15::INTEGER, $16::TIMESTAMP WITHOUT TIME ZONE, $17::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: [(UUID('792ba76f-af03-438e-9cf1-f9b6c1420bf8'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('fbe75732-0a26-4695-b30b-ed2ece8604bb'), 'zhipu', 'Zhipu AI', '', '', '#FFFFFF', 'https://api.zhipuai.cn/v1', None, '["llm", "code", "multimodal", "image"]', 'https://www.zhipuai.cn/', False, True, 2, datetime.datetime(2026, 1, 22, 22, 4, 47, 356224), datetime.datetime(2026, 1, 22, 22, 4, 47, 356224)), (UUID('aab1d800-f566-4544-aee0-e93215766998'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('5283d005-4846-4d53-9662-4595114a7389'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', None, None, '["llm"]', 'https://ollama.ai/', False, True, 3, datetime.datetime(2026, 1, 22, 22, 4, 47, 356224), datetime.datetime(2026, 1, 22, 22, 4, 47, 357764)), (UUID('1628e31c-6e64-466a-8e93-02ad6ee9c235'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('4d9bb7b3-8957-4c83-82d6-895000c4500f'), 'anthropic', 'Anthropic', '', '', '#FFFFFF', None, None, '["llm", "code"]', 'https://www.anthropic.com/', False, True, 4, datetime.datetime(2026, 1, 22, 22, 4, 47, 359201), datetime.datetime(2026, 1, 22, 22, 4, 47, 359201)), (UUID('14a795b2-9b53-4f0a-8610-3b4ebe24f965'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('ed14128c-b51f-4eb2-9dea-f35353413c0f'), 'bytedance', 'Bytedance', '', '', '#FFFFFF', None, None, '["llm"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 360753), datetime.datetime(2026, 1, 22, 22, 4, 47, 360753)), (UUID('6a9624ef-f189-4246-abf5-e14543168800'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('790c0e7d-0d5e-43ae-84a4-7e60f251f74b'), 'bailian', 'Bailian', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "image", "code"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 362356), datetime.datetime(2026, 1, 22, 22, 4, 47, 362356)), (UUID('c76359a4-66bf-4282-9054-95542973e37a'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('1a77b39d-382f-444e-b999-f78739a22b60'), 'minimax', 'Minimax', '', '', '#FFFFFF', None, None, '["llm", "image", "audio", "code"]', None, False, True, 7, datetime.datetime(2026, 1, 22, 22, 4, 47, 362356), datetime.datetime(2026, 1, 22, 22, 4, 47, 362356)), (UUID('7e6169ff-d61f-4dc9-90ac-d8c2a7676255'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('8b675939-84e4-446d-a499-b1d35cb9c825'), 'moonshot', 'Moonshot', '', '', '#FFFFFF', None, None, '["llm", "code"]', None, False, True, 8, datetime.datetime(2026, 1, 22, 22, 4, 47, 363908), datetime.datetime(2026, 1, 22, 22, 4, 47, 363908)), (UUID('444788b0-4541-45ab-898b-e35c6b8360a4'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('f371d7e3-2cc2-48ba-9550-56ae87e989d7'), 'openrouter', 'Openrouter', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', None, False, True, 9, datetime.datetime(2026, 1, 22, 22, 4, 47, 363908), datetime.datetime(2026, 1, 22, 22, 4, 47, 365483))  ... displaying 10 of 11 total bound parameter sets ...  (UUID('5ef886c9-de5e-43e6-880f-9c5cb749d6bf'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'), 'openai', 'OpenAI', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', 'https://platform.openai.com/', False, False, 1, datetime.datetime(2026, 1, 22, 22, 4, 47, 367046), datetime.datetime(2026, 1, 22, 22, 4, 47, 367046)), (UUID('bcbcd36a-afd0-4e6a-93f9-ddcb91d3524d'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('7a22dc41-00aa-4253-912c-908282d6e38b'), 'xinference', 'Xinference', '', '', '#FFFFFF', None, None, '["llm", "code", "multimodal", "embedding", "rerank", "image", "audio", "video"]', None, False, False, 11, datetime.datetime(2026, 1, 22, 22, 4, 47, 368066), datetime.datetime(2026, 1, 22, 22, 4, 47, 368618))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+[2026-01-22 22:04:47] ERROR [sql] ❌ 数据库事务失败: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(zhipu) already exists.
+[SQL: INSERT INTO model_providers (id, user_id, template_id, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::VARCHAR, $11::JSON, $12::VARCHAR, $13::BOOLEAN, $14::BOOLEAN, $15::INTEGER, $16::TIMESTAMP WITHOUT TIME ZONE, $17::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: [(UUID('3b3e7b29-fbf1-4507-84bd-735f83ea7e11'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('fbe75732-0a26-4695-b30b-ed2ece8604bb'), 'zhipu', 'Zhipu AI', '', '', '#FFFFFF', 'https://api.zhipuai.cn/v1', None, '["llm", "code", "multimodal", "image"]', 'https://www.zhipuai.cn/', False, True, 2, datetime.datetime(2026, 1, 22, 22, 4, 47, 521619), datetime.datetime(2026, 1, 22, 22, 4, 47, 523170)), (UUID('c2847692-bfde-44ab-8d35-1d467189e34e'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('5283d005-4846-4d53-9662-4595114a7389'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', None, None, '["llm"]', 'https://ollama.ai/', False, True, 3, datetime.datetime(2026, 1, 22, 22, 4, 47, 524722), datetime.datetime(2026, 1, 22, 22, 4, 47, 524722)), (UUID('87377616-5c35-45c4-ba4c-a034e7563bab'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('4d9bb7b3-8957-4c83-82d6-895000c4500f'), 'anthropic', 'Anthropic', '', '', '#FFFFFF', None, None, '["llm", "code"]', 'https://www.anthropic.com/', False, True, 4, datetime.datetime(2026, 1, 22, 22, 4, 47, 524722), datetime.datetime(2026, 1, 22, 22, 4, 47, 524722)), (UUID('d600e03d-9bb5-498f-9b25-1d162ab4ff42'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('ed14128c-b51f-4eb2-9dea-f35353413c0f'), 'bytedance', 'Bytedance', '', '', '#FFFFFF', None, None, '["llm"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 526932), datetime.datetime(2026, 1, 22, 22, 4, 47, 526932)), (UUID('423d4c5a-a73c-4082-8f9a-2e124e9722ab'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('790c0e7d-0d5e-43ae-84a4-7e60f251f74b'), 'bailian', 'Bailian', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "image", "code"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 527453), datetime.datetime(2026, 1, 22, 22, 4, 47, 528155)), (UUID('88d4c740-204d-4fad-857e-c2bfe0fec0fe'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('1a77b39d-382f-444e-b999-f78739a22b60'), 'minimax', 'Minimax', '', '', '#FFFFFF', None, None, '["llm", "image", "audio", "code"]', None, False, True, 7, datetime.datetime(2026, 1, 22, 22, 4, 47, 528677), datetime.datetime(2026, 1, 22, 22, 4, 47, 529684)), (UUID('dff43fb9-0533-4ca5-9a56-2accd954de70'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('8b675939-84e4-446d-a499-b1d35cb9c825'), 'moonshot', 'Moonshot', '', '', '#FFFFFF', None, None, '["llm", "code"]', None, False, True, 8, datetime.datetime(2026, 1, 22, 22, 4, 47, 530192), datetime.datetime(2026, 1, 22, 22, 4, 47, 530192)), (UUID('0e791fb3-995a-45d9-98ef-37f1e8b31990'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('f371d7e3-2cc2-48ba-9550-56ae87e989d7'), 'openrouter', 'Openrouter', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', None, False, True, 9, datetime.datetime(2026, 1, 22, 22, 4, 47, 531706), datetime.datetime(2026, 1, 22, 22, 4, 47, 531706))  ... displaying 10 of 11 total bound parameter sets ...  (UUID('6f25b23d-8197-4d09-be75-47a38c6041a8'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'), 'openai', 'OpenAI', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', 'https://platform.openai.com/', False, False, 1, datetime.datetime(2026, 1, 22, 22, 4, 47, 533218), datetime.datetime(2026, 1, 22, 22, 4, 47, 533218)), (UUID('2f074b8e-2e78-49f7-983b-c6ed1f459f3d'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('7a22dc41-00aa-4253-912c-908282d6e38b'), 'xinference', 'Xinference', '', '', '#FFFFFF', None, None, '["llm", "code", "multimodal", "embedding", "rerank", "image", "audio", "video"]', None, False, False, 11, datetime.datetime(2026, 1, 22, 22, 4, 47, 534225), datetime.datetime(2026, 1, 22, 22, 4, 47, 534731))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+[2026-01-22 22:04:47] CRITICAL [app] 未处理的异常: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "model_providers_name_key"
+DETAIL:  Key (name)=(zhipu) already exists.
+[SQL: INSERT INTO model_providers (id, user_id, template_id, name, label, description, icon, icon_background, base_url, api_key, supported_model_types, help_url, is_builtin, is_enabled, position, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::VARCHAR, $11::JSON, $12::VARCHAR, $13::BOOLEAN, $14::BOOLEAN, $15::INTEGER, $16::TIMESTAMP WITHOUT TIME ZONE, $17::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: [(UUID('3b3e7b29-fbf1-4507-84bd-735f83ea7e11'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('fbe75732-0a26-4695-b30b-ed2ece8604bb'), 'zhipu', 'Zhipu AI', '', '', '#FFFFFF', 'https://api.zhipuai.cn/v1', None, '["llm", "code", "multimodal", "image"]', 'https://www.zhipuai.cn/', False, True, 2, datetime.datetime(2026, 1, 22, 22, 4, 47, 521619), datetime.datetime(2026, 1, 22, 22, 4, 47, 523170)), (UUID('c2847692-bfde-44ab-8d35-1d467189e34e'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('5283d005-4846-4d53-9662-4595114a7389'), 'ollama', 'Ollama', 'ollama模型提供商', '', '#FFFFFF', None, None, '["llm"]', 'https://ollama.ai/', False, True, 3, datetime.datetime(2026, 1, 22, 22, 4, 47, 524722), datetime.datetime(2026, 1, 22, 22, 4, 47, 524722)), (UUID('87377616-5c35-45c4-ba4c-a034e7563bab'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('4d9bb7b3-8957-4c83-82d6-895000c4500f'), 'anthropic', 'Anthropic', '', '', '#FFFFFF', None, None, '["llm", "code"]', 'https://www.anthropic.com/', False, True, 4, datetime.datetime(2026, 1, 22, 22, 4, 47, 524722), datetime.datetime(2026, 1, 22, 22, 4, 47, 524722)), (UUID('d600e03d-9bb5-498f-9b25-1d162ab4ff42'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('ed14128c-b51f-4eb2-9dea-f35353413c0f'), 'bytedance', 'Bytedance', '', '', '#FFFFFF', None, None, '["llm"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 526932), datetime.datetime(2026, 1, 22, 22, 4, 47, 526932)), (UUID('423d4c5a-a73c-4082-8f9a-2e124e9722ab'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('790c0e7d-0d5e-43ae-84a4-7e60f251f74b'), 'bailian', 'Bailian', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "image", "code"]', None, False, True, 5, datetime.datetime(2026, 1, 22, 22, 4, 47, 527453), datetime.datetime(2026, 1, 22, 22, 4, 47, 528155)), (UUID('88d4c740-204d-4fad-857e-c2bfe0fec0fe'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('1a77b39d-382f-444e-b999-f78739a22b60'), 'minimax', 'Minimax', '', '', '#FFFFFF', None, None, '["llm", "image", "audio", "code"]', None, False, True, 7, datetime.datetime(2026, 1, 22, 22, 4, 47, 528677), datetime.datetime(2026, 1, 22, 22, 4, 47, 529684)), (UUID('dff43fb9-0533-4ca5-9a56-2accd954de70'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('8b675939-84e4-446d-a499-b1d35cb9c825'), 'moonshot', 'Moonshot', '', '', '#FFFFFF', None, None, '["llm", "code"]', None, False, True, 8, datetime.datetime(2026, 1, 22, 22, 4, 47, 530192), datetime.datetime(2026, 1, 22, 22, 4, 47, 530192)), (UUID('0e791fb3-995a-45d9-98ef-37f1e8b31990'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('f371d7e3-2cc2-48ba-9550-56ae87e989d7'), 'openrouter', 'Openrouter', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', None, False, True, 9, datetime.datetime(2026, 1, 22, 22, 4, 47, 531706), datetime.datetime(2026, 1, 22, 22, 4, 47, 531706))  ... displaying 10 of 11 total bound parameter sets ...  (UUID('6f25b23d-8197-4d09-be75-47a38c6041a8'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('6acea59b-cc7f-402b-b342-86aa296e2bef'), 'openai', 'OpenAI', '', '', '#FFFFFF', None, None, '["llm", "multimodal", "embedding", "rerank", "image", "audio", "video", "code"]', 'https://platform.openai.com/', False, False, 1, datetime.datetime(2026, 1, 22, 22, 4, 47, 533218), datetime.datetime(2026, 1, 22, 22, 4, 47, 533218)), (UUID('2f074b8e-2e78-49f7-983b-c6ed1f459f3d'), UUID('ef3403c9-06e1-4769-9b40-b4c6eb021dd5'), UUID('7a22dc41-00aa-4253-912c-908282d6e38b'), 'xinference', 'Xinference', '', '', '#FFFFFF', None, None, '["llm", "code", "multimodal", "embedding", "rerank", "image", "audio", "video"]', None, False, False, 11, datetime.datetime(2026, 1, 22, 22, 4, 47, 534225), datetime.datetime(2026, 1, 22, 22, 4, 47, 534731))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+[2026-01-22 22:09:31] ERROR [app] fastapi应用关闭
+[2026-01-22 22:19:32] ERROR [app] fastapi应用关闭
+[2026-01-22 22:26:44] ERROR [app] fastapi应用关闭
+[2026-01-22 22:31:45] ERROR [app] fastapi应用关闭
+[2026-01-22 22:36:05] ERROR [app] fastapi应用关闭
+[2026-01-22 22:37:20] ERROR [app] fastapi应用关闭
+[2026-01-24 14:16:39] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-24 14:16:39] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-24 14:16:39] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-24 14:17:31] ERROR [sql] ❌ 数据库事务失败: 401: 请先登录
+[2026-01-24 14:20:02] ERROR [sql] ❌ 数据库事务失败: Class 'app.src.schema.model_config_schema.ModelConfigCreate' is not mapped
+[2026-01-24 14:20:02] CRITICAL [app] 未处理的异常: Class 'app.src.schema.model_config_schema.ModelConfigCreate' is not mapped
+[2026-01-24 14:26:00] ERROR [app] fastapi应用关闭
+[2026-01-24 14:29:26] ERROR [app] fastapi应用关闭
+[2026-01-24 15:45:22] ERROR [sql] ❌ 数据库事务失败: Class 'uuid.UUID' is not mapped
+[2026-01-24 15:45:22] CRITICAL [app] 未处理的异常: Class 'uuid.UUID' is not mapped
+[2026-01-24 15:52:59] ERROR [app] fastapi应用关闭
+[2026-01-24 15:53:40] ERROR [sql] ❌ 数据库事务失败: Class 'uuid.UUID' is not mapped
+[2026-01-24 15:53:40] CRITICAL [app] 未处理的异常: Class 'uuid.UUID' is not mapped
+[2026-01-24 15:56:27] ERROR [app] fastapi应用关闭
+[2026-01-24 15:57:59] ERROR [sql] ❌ 数据库事务失败: BaseService.update() takes 2 positional arguments but 3 were given
+[2026-01-24 15:57:59] CRITICAL [app] 未处理的异常: BaseService.update() takes 2 positional arguments but 3 were given
+[2026-01-24 16:00:29] ERROR [sql] ❌ 数据库事务失败: BaseService.update() takes 2 positional arguments but 3 were given
+[2026-01-24 16:00:29] CRITICAL [app] 未处理的异常: BaseService.update() takes 2 positional arguments but 3 were given
+[2026-01-24 16:00:35] ERROR [app] fastapi应用关闭
+[2026-01-24 16:10:36] ERROR [app] fastapi应用关闭
+[2026-01-24 16:11:50] ERROR [app] fastapi应用关闭
+[2026-01-24 16:50:16] ERROR [app] fastapi应用关闭
+[2026-01-24 16:52:40] ERROR [sql] ❌ 数据库事务失败: Class 'uuid.UUID' is not mapped
+[2026-01-24 16:52:40] CRITICAL [app] 未处理的异常: Class 'uuid.UUID' is not mapped
+[2026-01-24 16:53:59] ERROR [app] fastapi应用关闭
+[2026-01-24 16:55:03] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "provider_id" of relation "system_model_definitions" violates not-null constraint
+DETAIL:  Failing row contains (289d6155-baae-45f6-ae72-869792bfe2b6, null, qwen-3-plus, Qwen 3 Plus, null, llm, [], 32768, 4096, {}, null, 2, t, 2026-01-24 15:42:56.854557, 2026-01-24 15:42:56.854557).
+[SQL: UPDATE system_model_definitions SET provider_id=$1::UUID WHERE system_model_definitions.id = $2::UUID]
+[parameters: [(None, UUID('289d6155-baae-45f6-ae72-869792bfe2b6')), (None, UUID('704323ac-02b9-48a4-a82c-66ebd7c0a60f')), (None, UUID('ca593b11-5f16-4636-9ab6-6a0b25a031ec')), (None, UUID('d8fced5b-87a1-4dfa-85a7-acba17826ba2'))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 16:55:03] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "provider_id" of relation "system_model_definitions" violates not-null constraint
+DETAIL:  Failing row contains (289d6155-baae-45f6-ae72-869792bfe2b6, null, qwen-3-plus, Qwen 3 Plus, null, llm, [], 32768, 4096, {}, null, 2, t, 2026-01-24 15:42:56.854557, 2026-01-24 15:42:56.854557).
+[SQL: UPDATE system_model_definitions SET provider_id=$1::UUID WHERE system_model_definitions.id = $2::UUID]
+[parameters: [(None, UUID('289d6155-baae-45f6-ae72-869792bfe2b6')), (None, UUID('704323ac-02b9-48a4-a82c-66ebd7c0a60f')), (None, UUID('ca593b11-5f16-4636-9ab6-6a0b25a031ec')), (None, UUID('d8fced5b-87a1-4dfa-85a7-acba17826ba2'))]]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 16:58:20] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "provider_id" of relation "system_model_definitions" violates not-null constraint
+DETAIL:  Failing row contains (0584bb6a-d238-454e-bbd3-e4c4aaf76ff1, null, llama-3.3-405b, Llama 3.3 405B, null, llm, ["open_source", "reasoning"], 128000, 4096, {}, null, 1, t, 2026-01-24 16:48:58.557453, 2026-01-24 16:48:58.557453).
+[SQL: UPDATE system_model_definitions SET provider_id=$1::UUID WHERE system_model_definitions.id = $2::UUID]
+[parameters: (None, UUID('0584bb6a-d238-454e-bbd3-e4c4aaf76ff1'))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 16:58:20] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "provider_id" of relation "system_model_definitions" violates not-null constraint
+DETAIL:  Failing row contains (0584bb6a-d238-454e-bbd3-e4c4aaf76ff1, null, llama-3.3-405b, Llama 3.3 405B, null, llm, ["open_source", "reasoning"], 128000, 4096, {}, null, 1, t, 2026-01-24 16:48:58.557453, 2026-01-24 16:48:58.557453).
+[SQL: UPDATE system_model_definitions SET provider_id=$1::UUID WHERE system_model_definitions.id = $2::UUID]
+[parameters: (None, UUID('0584bb6a-d238-454e-bbd3-e4c4aaf76ff1'))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 17:03:28] ERROR [app] fastapi应用关闭
+[2026-01-24 17:08:28] ERROR [app] fastapi应用关闭
+[2026-01-24 17:09:28] ERROR [app] fastapi应用关闭
+[2026-01-24 17:10:14] ERROR [sql] ❌ 数据库事务失败: 供应商不存在
+[2026-01-24 17:10:14] ERROR [app] API异常: 供应商不存在
+[2026-01-24 17:59:38] ERROR [app] fastapi应用关闭
+[2026-01-24 18:31:46] ERROR [app] fastapi应用关闭
+[2026-01-24 18:48:43] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "system_model_providers" violates not-null constraint
+DETAIL:  Failing row contains (4443cd1d-ef5a-45d1-ab27-a695113ea218, aaa, null, , , #FFFFFF, , ["llm"], null, 17, null, 2026-01-24 18:48:43.782559, 2026-01-24 18:48:43.782559).
+[SQL: INSERT INTO system_model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, position, owner_id, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::INTEGER, $11::UUID, $12::TIMESTAMP WITHOUT TIME ZONE, $13::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('4443cd1d-ef5a-45d1-ab27-a695113ea218'), 'aaa', None, '', '', '#FFFFFF', '', '["llm"]', None, 17, None, datetime.datetime(2026, 1, 24, 18, 48, 43, 782559), datetime.datetime(2026, 1, 24, 18, 48, 43, 782559))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 18:48:43] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "system_model_providers" violates not-null constraint
+DETAIL:  Failing row contains (4443cd1d-ef5a-45d1-ab27-a695113ea218, aaa, null, , , #FFFFFF, , ["llm"], null, 17, null, 2026-01-24 18:48:43.782559, 2026-01-24 18:48:43.782559).
+[SQL: INSERT INTO system_model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, position, owner_id, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::INTEGER, $11::UUID, $12::TIMESTAMP WITHOUT TIME ZONE, $13::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('4443cd1d-ef5a-45d1-ab27-a695113ea218'), 'aaa', None, '', '', '#FFFFFF', '', '["llm"]', None, 17, None, datetime.datetime(2026, 1, 24, 18, 48, 43, 782559), datetime.datetime(2026, 1, 24, 18, 48, 43, 782559))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 18:48:45] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "system_model_providers" violates not-null constraint
+DETAIL:  Failing row contains (cbdb789e-9a7c-4e1c-91c5-9c79f71a088c, aaa, null, , , #FFFFFF, , ["llm"], null, 17, null, 2026-01-24 18:48:45.172491, 2026-01-24 18:48:45.174044).
+[SQL: INSERT INTO system_model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, position, owner_id, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::INTEGER, $11::UUID, $12::TIMESTAMP WITHOUT TIME ZONE, $13::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('cbdb789e-9a7c-4e1c-91c5-9c79f71a088c'), 'aaa', None, '', '', '#FFFFFF', '', '["llm"]', None, 17, None, datetime.datetime(2026, 1, 24, 18, 48, 45, 172491), datetime.datetime(2026, 1, 24, 18, 48, 45, 174044))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 18:48:45] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.NotNullViolationError'>: null value in column "label" of relation "system_model_providers" violates not-null constraint
+DETAIL:  Failing row contains (cbdb789e-9a7c-4e1c-91c5-9c79f71a088c, aaa, null, , , #FFFFFF, , ["llm"], null, 17, null, 2026-01-24 18:48:45.172491, 2026-01-24 18:48:45.174044).
+[SQL: INSERT INTO system_model_providers (id, name, label, description, icon, icon_background, default_base_url, supported_model_types, help_url, position, owner_id, created_at, updated_at) VALUES ($1::UUID, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::JSON, $9::VARCHAR, $10::INTEGER, $11::UUID, $12::TIMESTAMP WITHOUT TIME ZONE, $13::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('cbdb789e-9a7c-4e1c-91c5-9c79f71a088c'), 'aaa', None, '', '', '#FFFFFF', '', '["llm"]', None, 17, None, datetime.datetime(2026, 1, 24, 18, 48, 45, 172491), datetime.datetime(2026, 1, 24, 18, 48, 45, 174044))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 19:00:36] ERROR [app] fastapi应用关闭
+[2026-01-24 20:03:53] ERROR [sql] ❌ 数据库事务失败: 'ModelProviderService' object has no attribute 'update_user_model_preference'
+[2026-01-24 20:03:53] CRITICAL [app] 未处理的异常: 'ModelProviderService' object has no attribute 'update_user_model_preference'
+[2026-01-24 20:10:04] ERROR [app] fastapi应用关闭
+[2026-01-24 20:15:05] ERROR [app] fastapi应用关闭
+[2026-01-24 20:15:48] ERROR [app] fastapi应用关闭
+[2026-01-24 20:17:04] ERROR [app] fastapi应用关闭
+[2026-01-24 20:29:29] ERROR [app] fastapi应用关闭
+[2026-01-24 20:34:30] ERROR [app] fastapi应用关闭
+[2026-01-24 21:10:23] ERROR [app] fastapi应用关闭
+[2026-01-24 21:30:17] ERROR [app] fastapi应用关闭
+[2026-01-24 21:35:17] ERROR [app] fastapi应用关闭
+[2026-01-24 21:36:16] ERROR [app] fastapi应用关闭
+[2026-01-24 21:41:16] ERROR [app] fastapi应用关闭
+[2026-01-24 21:44:17] ERROR [app] fastapi应用关闭
+[2026-01-24 21:47:29] ERROR [sql] ❌ 数据库事务失败: "SystemModelProvider" object has no field "provider_id"
+[2026-01-24 22:08:58] ERROR [sql] ❌ 数据库事务失败: cannot import name 'PermissionDeniedException' from 'app.src.response.exception.exceptions' (D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\response\exception\exceptions.py)
+[2026-01-24 22:08:58] CRITICAL [app] 未处理的异常: cannot import name 'PermissionDeniedException' from 'app.src.response.exception.exceptions' (D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\response\exception\exceptions.py)
+[2026-01-24 22:16:30] ERROR [sql] ❌ 数据库事务失败: cannot import name 'PermissionDeniedException' from 'app.src.response.exception.exceptions' (D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\response\exception\exceptions.py)
+[2026-01-24 22:16:30] CRITICAL [app] 未处理的异常: cannot import name 'PermissionDeniedException' from 'app.src.response.exception.exceptions' (D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\response\exception\exceptions.py)
+[2026-01-24 22:19:10] ERROR [app] fastapi应用关闭
+[2026-01-24 22:20:12] ERROR [sql] ❌ 数据库事务失败: cannot import name 'PermissionDeniedException' from 'app.src.response.exception.exceptions' (D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\response\exception\exceptions.py)
+[2026-01-24 22:20:12] CRITICAL [app] 未处理的异常: cannot import name 'PermissionDeniedException' from 'app.src.response.exception.exceptions' (D:\code\SmartTCM-Agent-SYSTEM\backend\app\src\response\exception\exceptions.py)
+[2026-01-24 22:24:10] ERROR [app] fastapi应用关闭
+[2026-01-24 22:28:27] ERROR [app] fastapi应用关闭
+[2026-01-24 22:33:28] ERROR [app] fastapi应用关闭
+[2026-01-24 22:33:45] ERROR [sql] ❌ 数据库事务失败: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "uq_user_provider_config"
+DETAIL:  Key (user_id, provider_id)=(ef3403c9-06e1-4769-9b40-b4c6eb021dd5, 70b9c0a5-da7b-45b1-a9b2-a53de8bf684c) already exists.
+[SQL: INSERT INTO user_provider_configs (id, user_id, provider_id, api_key, base_url_override, is_enabled, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::BOOLEAN, $7::TIMESTAMP WITHOUT TIME ZONE, $8::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('83c5aed4-636b-4270-ae06-23b140a7305d'), 'ef3403c9-06e1-4769-9b40-b4c6eb021dd5', UUID('70b9c0a5-da7b-45b1-a9b2-a53de8bf684c'), '4cf6829aa93728e8f3c97df913fb1bfa95fe5810e2933a05943f8312a98d9cf2', None, True, datetime.datetime(2026, 1, 24, 22, 33, 45, 639318), datetime.datetime(2026, 1, 24, 22, 33, 45, 639825))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 22:33:45] CRITICAL [app] 未处理的异常: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "uq_user_provider_config"
+DETAIL:  Key (user_id, provider_id)=(ef3403c9-06e1-4769-9b40-b4c6eb021dd5, 70b9c0a5-da7b-45b1-a9b2-a53de8bf684c) already exists.
+[SQL: INSERT INTO user_provider_configs (id, user_id, provider_id, api_key, base_url_override, is_enabled, created_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::BOOLEAN, $7::TIMESTAMP WITHOUT TIME ZONE, $8::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: (UUID('83c5aed4-636b-4270-ae06-23b140a7305d'), 'ef3403c9-06e1-4769-9b40-b4c6eb021dd5', UUID('70b9c0a5-da7b-45b1-a9b2-a53de8bf684c'), '4cf6829aa93728e8f3c97df913fb1bfa95fe5810e2933a05943f8312a98d9cf2', None, True, datetime.datetime(2026, 1, 24, 22, 33, 45, 639318), datetime.datetime(2026, 1, 24, 22, 33, 45, 639825))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2026-01-24 22:45:06] ERROR [app] fastapi应用关闭

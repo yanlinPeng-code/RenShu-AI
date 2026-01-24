@@ -25,17 +25,30 @@ JWT_SECRET = settings.JWT_SECRET_KEY
 ACCESS_TOKEN_EXPIRE_HOURS = 24  # 普通接口访问携带的token过期时间为24小时
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # 刷新token过期时间为30天
 
-    
-def initialize(cls):
-        """Initialize authentication tool and record configuration information"""
 
-        # 验证JWT密钥
-        if cls.JWT_SECRET == 'your-secret-key-change-in-production':
-            logger.warning("Using default JWT secret key! Please change in production!")
-        else:
-            logger.info("JWT secret key is configured")
+def hash_api_key(api_key: str) -> str:
+        """API key hashing"""
+        try:
+            hashed = hashlib.sha256(api_key.encode('utf-8')).hexdigest()
+            return hashed
+        except Exception as e:
+            logger.error(f"API key hashing failed: {e}")
+            raise
+def verify_api_key(hashed_api_key: str, input_api_key: str) -> bool:
+        """API key verification"""
+        try:
+            is_valid = hashed_api_key == hash_api_key(input_api_key)
+            if is_valid:
+                logger.info("API key verification successful")
+            else:
+                logger.warning("API key verification failed: invalid API key")
+            return is_valid
+        except Exception as e:
+            logger.error(f"API key verification error: {e}")
+            return False
+        
 
-   
+
 def hash_password(password: str) -> str:
         """password hashing"""
         try:

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { User, ChatMessage, AVAILABLE_MODELS, AIModelConfig } from '../../types';
+import { User, ChatMessage, AIModelConfig } from '../../types';
+import { AVAILABLE_MODELS } from '../../constants';
 import { Icons } from '../../components/common/Icons';
 import { BrandLogo } from '../../components/common/BrandLogo';
 import { createProfessionalChat, analyzeMedicalReport } from '../../services/geminiService';
 import { Chat } from "@google/genai";
+import { LogoutConfirmModal } from '../../components/common/LogoutConfirmModal';
 
 interface ProPortalProps {
   user: User;
@@ -104,7 +106,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false); // Default collapsed as requested
   const [showModelSelector, setShowModelSelector] = useState(false);
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   // New Toggles
   const [enableDeepThink, setEnableDeepThink] = useState(false);
   const [enableWebSearch, setEnableWebSearch] = useState(false);
@@ -373,7 +375,12 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
 
     return (
       <div className="w-full h-full p-6 bg-gray-50 dark:bg-gray-900 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 flex flex-col md:flex-row gap-6 transition-colors">
-
+         <LogoutConfirmModal 
+                isOpen={showLogoutModal} 
+                onConfirm={() => { setShowLogoutModal(false); onLogout(); }} 
+                onCancel={() => setShowLogoutModal(false)} 
+                variant="professional"
+          />
         {/* Left Column: Input */}
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h2 className="text-2xl font-bold text-tcm-darkGreen dark:text-tcm-cream font-serif-sc mb-2">报告上传</h2>
@@ -561,7 +568,14 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
   );
 
   return (
-    <div className="w-full h-screen flex bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden transition-colors duration-500">
+    <>
+      <LogoutConfirmModal 
+        isOpen={showLogoutModal} 
+        onConfirm={() => { setShowLogoutModal(false); onLogout(); }} 
+        onCancel={() => setShowLogoutModal(false)} 
+        variant="professional"
+      />
+      <div className="w-full h-screen flex bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden transition-colors duration-500">
 
       {/* 1. Navigation Sidebar (Left) */}
       <aside className="w-64 bg-tcm-darkGreen dark:bg-black/50 flex flex-col text-white flex-shrink-0 z-20 shadow-xl transition-all duration-300">
@@ -619,7 +633,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
               <p className="text-xs text-tcm-gold/80 truncate">Attending Physician</p>
             </div>
           </div>
-          <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-2 text-xs text-red-300 hover:text-white hover:bg-white/10 rounded transition-colors">
+          <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center justify-center gap-2 py-2 text-xs text-red-300 hover:text-white hover:bg-white/10 rounded transition-colors">
             <Icons.LogOut size={14} /> Sign Out
           </button>
         </div>
@@ -932,7 +946,7 @@ const ProfessionalPortal: React.FC<ProPortalProps> = ({ user, onLogout }) => {
       )}
 
     </div>
-  );
+  </>);
 };
 
 // Helper Components

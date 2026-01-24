@@ -115,6 +115,7 @@ class RefreshResponse(BaseModel):
     access_token: str= Field(description="访问令牌")
     refresh_token: str= Field(description="刷新令牌")
     expires_in: int= Field(description="令牌有效期")
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -218,23 +219,6 @@ class AdminLogin(BaseModel):
     password: str = Field(description="密码")
 
 
-class AdminAuthResponse(BaseModel):
-    """管理员认证响应模型"""
-    access_token: str = Field(description="访问令牌")
-    refresh_token: str = Field(description="刷新令牌")
-    expires_in: int = Field(description="令牌有效期（秒）")
-    user_id: UUID = Field(description="用户ID")
-    role: str = Field(description="用户角色")
-
-    @field_validator('user_id')
-    def convert_user_id_to_str(cls, v):
-        return str(v)
-
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat()},
-        populate_by_name=True
-    )
-
 
 class AdminResponse(BaseModel):
     """管理员信息响应（不含敏感信息）"""
@@ -255,3 +239,151 @@ class ChangePasswordRequest(BaseModel):
     """修改密码请求"""
     old_password: str = Field(description="旧密码")
     new_password: str = Field(description="新密码", min_length=6)
+
+
+# ==================== 三端分离账户 Schema ====================
+
+class PatientRegister(BaseModel):
+    """患者注册模型"""
+    email: str = Field(description="邮箱地址")
+    password: str = Field(description="密码", min_length=6)
+    username: str = Field(description="用户名", min_length=3, max_length=50)
+    real_name: Optional[str] = Field(default=None, description="真实姓名")
+    phone: Optional[str] = Field(default=None, description="手机号")
+    gender: Optional[str] = Field(default=None, description="性别")
+    birth_date: Optional[date] = Field(default=None, description="出生日期")
+
+    @field_validator('gender')
+    def validate_gender(cls, v):
+        if v is not None:
+            allowed_genders = ['male', 'female', 'other']
+            if v not in allowed_genders:
+                raise ValueError(f'性别必须是以下之一: {", ".join(allowed_genders)}')
+        return v
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DoctorRegister(BaseModel):
+    """医生注册模型"""
+    email: str = Field(description="邮箱地址")
+    password: str = Field(description="密码", min_length=6)
+    username: str = Field(description="用户名", min_length=3, max_length=50)
+    real_name: Optional[str] = Field(default=None, description="真实姓名")
+    phone: Optional[str] = Field(default=None, description="手机号")
+    gender: Optional[str] = Field(default=None, description="性别")
+    license_no: Optional[str] = Field(default=None, description="执业证号")
+    department: Optional[str] = Field(default=None, description="科室")
+    hospital: Optional[str] = Field(default=None, description="所属医院")
+
+    @field_validator('gender')
+    def validate_gender(cls, v):
+        if v is not None:
+            allowed_genders = ['male', 'female', 'other']
+            if v not in allowed_genders:
+                raise ValueError(f'性别必须是以下之一: {", ".join(allowed_genders)}')
+        return v
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AdminRegister(BaseModel):
+    """管理员注册模型"""
+    email: str = Field(description="邮箱地址")
+    password: str = Field(description="密码", min_length=6)
+    username: str = Field(description="用户名", min_length=3, max_length=50)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AccountLogin(BaseModel):
+    """统一登录模型"""
+    email: str = Field(description="邮箱地址")
+    password: str = Field(description="密码")
+    account_type: str = Field(description="账户类型: patient/doctor/admin")
+
+    @field_validator('account_type')
+    def validate_account_type(cls, v):
+        allowed_types = ['patient', 'doctor', 'admin']
+        if v not in allowed_types:
+            raise ValueError(f'账户类型必须是以下之一: {", ".join(allowed_types)}')
+        return v
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PatientResponse(BaseModel):
+    """患者信息响应"""
+    id: UUID
+    account_id: UUID
+    username: str
+    real_name: Optional[str] = None
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    birth_date: Optional[date] = None
+    constitution_type: Optional[str] = None
+    avatar_url: Optional[str] = None
+    medical_history: Optional[str] = None
+    allergy_info: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+            date: lambda v: v.isoformat()
+        },
+        populate_by_name=True
+    )
+
+
+class DoctorResponse(BaseModel):
+    """医生信息响应"""
+    id: UUID
+    account_id: UUID
+    username: str
+    real_name: Optional[str] = None
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    avatar_url: Optional[str] = None
+    license_no: Optional[str] = None
+    department: Optional[str] = None
+    hospital: Optional[str] = None
+    specialty: Optional[str] = None
+    title: Optional[str] = None
+    introduction: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        populate_by_name=True
+    )
+
+
+class AdminProfileResponse(BaseModel):
+    """管理员信息响应"""
+    id: UUID
+    account_id: UUID
+    username: str
+    avatar_url: Optional[str] = None
+    admin_level: str
+    created_at: datetime
+
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        populate_by_name=True
+    )
+
+
+class AccountAuthResponse(BaseModel):
+    """账户认证响应"""
+    access_token: str = Field(description="访问令牌")
+    refresh_token: str = Field(description="刷新令牌")
+    expires_in: int = Field(description="令牌有效期(秒)")
+    account_id: UUID = Field(description="账户ID")
+    account_type: str = Field(description="账户类型")
+    profile: dict = Field(description="用户资料")
+
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        populate_by_name=True
+    )

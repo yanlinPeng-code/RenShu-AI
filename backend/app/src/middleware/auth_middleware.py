@@ -9,7 +9,7 @@ from sqlmodel import select
 from app.src.common.context.request_context import UserContext, set_current_context
 from app.src.utils.auth_utils import verify_token
 from app.src.common.config.prosgresql_config import async_db_manager
-from app.src.model.user_model import User
+from app.src.model.account_model import Account
 from app.src.utils import get_logger
 
 logger = get_logger("AuthMiddleware")
@@ -114,7 +114,7 @@ class AuthContextMiddleware:
 
     async def _load_user_roles(self, user_id: str) -> list[str]:
         """
-        从数据库加载用户角色
+        从数据库加载用户角色（使用Account表）
         使用 async_db_manager.get_session() 获取数据库会话
         """
         try:
@@ -125,14 +125,14 @@ class AuthContextMiddleware:
 
             # 使用 async_db_manager 获取会话
             async with async_db_manager.get_session() as session:
-                stmt = select(User.role).where(User.id == user_id)
+                stmt = select(Account.account_type).where(Account.id == user_id)
                 result = await session.exec(stmt)
-                role = result.one_or_none()
+                account_type = result.one_or_none()
 
-                if role:
-                    return [role]
+                if account_type:
+                    return [account_type]
 
-                logger.warning(f"未找到用户 {user_id} 的角色信息")
+                logger.warning(f"未找到账户 {user_id} 的角色信息")
                 return ["patient"]  # 默认角色
 
         except Exception as e:

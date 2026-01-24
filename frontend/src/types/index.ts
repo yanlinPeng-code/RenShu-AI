@@ -1,13 +1,7 @@
-// API类型
-export * from './api.types';
+// 业务模型
+export * from './user';
+export * from './chat';
+export * from './common';
 
-// 用户类型
-export * from './user.types';
-
-// 聊天类型
-export * from './chat.types';
-
-// 通用类型
-export * from './common.types';
-
-
+// API 类型（从 api/types 重新导出，方便统一导入）
+export * from '../api/types';

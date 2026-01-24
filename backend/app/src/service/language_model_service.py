@@ -1,186 +1,552 @@
 """
 语言模型服务
 
-管理员层：管理供应商和内置模型配置
-用户层：配置 API Key 和自定义参数
+架构设计：
+1. 管理员层：管理供应商和内置模型配置
+2. 用户层：配置 API Key 和自定义参数
 """
 import logging
+import json
 from typing import Any, Optional, List, Dict
 from uuid import UUID
 from copy import deepcopy
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from openai import AsyncOpenAI
 
 from app.src.core.language_model.entities.model_entity import BaseLanguageModel, ModelFeature
-from app.src.core.language_model.providers import get_chat_class
 from app.src.core.language_model.default_models import DEFAULT_PROVIDERS, DEFAULT_MODELS
 
 from app.src.response.exception.exceptions import ResourceNotFoundException, BusinessException
 from app.src.service.base_service import BaseService
-from app.src.common.decorators import require_login, require_roles
-from app.src.common.context import get_current_user_id
+from app.src.common.decorators import require_login
+from app.src.common.context import get_current_user_id, get_user_roles
+from app.src.utils.auth_utils import hash_api_key
 
-from app.src.model.model_config_models import ModelProvider, ModelConfig, UserModelConfig
-from app.src.schema.model_config_schema import ModelProviderCreate, ModelProviderUpdate, ModelConfigCreate, \
-    ModelConfigUpdate, UserModelConfigUpdate, UserModelConfigCreate
+from app.src.model.model_config_models import (
+    SystemModelProvider, SystemModelDefinition, UserProviderConfig, UserModelPreference
+)
+from app.src.schema.model_config_schema import ModelProviderCreate, ModelProviderUpdate, ModelConfigCreate, ModelConfigUpdate
 
 
-# ==================== 管理员服务 ====================
+# ==================== 供应商服务 ====================
 
-class ModelProviderService(BaseService[ModelProvider]):
-    """模型供应商服务（管理员使用）"""
+class ModelProviderService(BaseService[SystemModelProvider]):
+    """模型供应商服务"""
 
     def __init__(self, session: AsyncSession):
-        super().__init__(ModelProvider, session)
+        super().__init__(SystemModelProvider, session)
 
-    async def get_all_providers(self, enabled_only: bool = True) -> List[ModelProvider]:
-        """获取所有供应商"""
-        query = select(ModelProvider)
-        if enabled_only:
-            query = query.where(ModelProvider.is_enabled == True)
-        query = query.order_by(ModelProvider.position)
+    async def get_all_providers(self, enabled_only: bool = True, user_id: Optional[UUID] = None) -> List[SystemModelProvider]:
+        """获取所有系统供应商
+        注意：此方法返回纯 SystemModelProvider，不包含用户配置。
+        如果需要用户配置，请使用 language_model_service.get_providers_with_models
+        
+        更新逻辑：支持用户自定义供应商 (owner_id = user_id)
+        """
+        # 基础查询：所有者为 NULL (系统内置)
+        conditions = [SystemModelProvider.owner_id == None]
+        
+        # 如果指定了用户，也包含该用户拥有的供应商
+        if user_id:
+            conditions.append(SystemModelProvider.owner_id == user_id)
+            
+        from sqlmodel import or_
+        query = select(SystemModelProvider).where(or_(*conditions))
+        query = query.order_by(SystemModelProvider.position)
         result = await self.session.exec(query)
         return list(result.all())
 
-    async def get_provider_by_name(self, name: str) -> Optional[ModelProvider]:
+    async def get_builtin_providers(self) -> List[SystemModelProvider]:
+        """获取所有系统内置供应商"""
+        return await self.get_all_providers()
+
+    async def get_provider_by_name(self, name: str) -> Optional[SystemModelProvider]:
         """根据名称获取供应商"""
-        query = select(ModelProvider).where(ModelProvider.name == name)
+        query = select(SystemModelProvider).where(SystemModelProvider.name == name)
         result = await self.session.exec(query)
         return result.first()
-
-    # ========== 管理员方法（带装饰器） ==========
-
-    @require_roles("admin", "super_admin")
-    async def create_provider(self, data: ModelProviderCreate) -> ModelProvider:
-        """创建供应商（需要管理员权限）"""
-        existing = await self.get_provider_by_name(data.name)
-        if existing:
-            raise BusinessException(f"供应商 '{data.name}' 已存在")
-
-        provider = ModelProvider(**data.model_dump())
-        return await self.create(provider)
-
-    @require_roles("admin", "super_admin")
-    async def update_provider(self, provider_id: UUID, data: ModelProviderUpdate) -> ModelProvider:
-        """更新供应商（需要管理员权限）"""
-        provider = await self.get(provider_id)
-        if not provider:
-            raise ResourceNotFoundException("供应商不存在")
-
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(provider, key, value)
-
-        return await self.update(provider)
-
-    @require_roles("admin", "super_admin")
-    async def delete_provider(self, provider_id: UUID) -> None:
-        """删除供应商（需要管理员权限）"""
-        provider = await self.get(provider_id)
-        if not provider:
-            raise ResourceNotFoundException("供应商不存在")
-
-        if provider.is_builtin:
-            raise BusinessException("内置供应商不可删除")
-
-        await self.delete(provider)
-
-    async def init_default_providers(self) -> None:
-        """初始化默认供应商（仅在数据库为空时调用）"""
-        existing = await self.get_all_providers(enabled_only=False)
-        if existing:
-            return
-
-        for provider_data in DEFAULT_PROVIDERS:
-            provider = ModelProvider(**provider_data)
-            self.session.add(provider)
-
-        await self.session.flush()
-
-
-class ModelConfigService(BaseService[ModelConfig]):
-    """模型配置服务（管理员使用）"""
-
-    def __init__(self,
-                 session: AsyncSession,
-                 provider_service:ModelProviderService):
-        super().__init__(ModelConfig, session)
-        self.provider_service = provider_service
-
-    async def get_models_by_provider(
-        self,
-        provider_id: UUID,
-        enabled_only: bool = True
-    ) -> List[ModelConfig]:
-        """获取供应商下的所有模型"""
-        query = select(ModelConfig).where(ModelConfig.provider_id == provider_id)
-        if enabled_only:
-            query = query.where(ModelConfig.is_enabled == True)
-        query = query.order_by(ModelConfig.position)
-        result = await self.session.exec(query)
-        return list(result.all())
-
-    async def get_model_by_name(
-        self,
-        provider_name: str,
-        model_name: str
-    ) -> Optional[ModelConfig]:
-        """根据供应商名称和模型名称获取模型配置"""
-        provider = await self.provider_service.get_provider_by_name(provider_name)
-        if not provider:
-            return None
-
-        query = select(ModelConfig).where(
-            ModelConfig.provider_id == provider.id,
-            ModelConfig.model_name == model_name
+    
+    async def get_user_config(self, user_id: UUID, provider_id: UUID) -> Optional[UserProviderConfig]:
+        """获取用户的供应商配置"""
+        query = select(UserProviderConfig).where(
+            UserProviderConfig.user_id == user_id,
+            UserProviderConfig.provider_id == provider_id
         )
         result = await self.session.exec(query)
         return result.first()
 
-    async def get_model_by_id(self, model_id: UUID) -> Optional[ModelConfig]:
-        """根据ID获取模型配置"""
-        return await self.get(model_id)
+    @require_login
+    async def update_user_config(self, provider_id: UUID, data: dict) -> UserProviderConfig:
+        """更新用户的供应商配置 (API Key, Base URL)"""
+        user_id = get_current_user_id()
+        
+        # 检查供应商是否存在
+        provider = await self.get(provider_id)
+        if not provider:
+            raise ResourceNotFoundException("供应商不存在")
 
-    # ========== 管理员方法（带装饰器） ==========
-
-    @require_roles("admin", "super_admin")
-    async def create_model_config(self, data: ModelConfigCreate) -> ModelConfig:
-        """创建模型配置（需要管理员权限）"""
-        model_config = ModelConfig(**data.model_dump())
-        return await self.create(model_config)
-
-    @require_roles("admin", "super_admin")
-    async def update_model_config(
-        self,
-        config_id: UUID,
-        data: ModelConfigUpdate
-    ) -> ModelConfig:
-        """更新模型配置（需要管理员权限）"""
-        config = await self.get(config_id)
+        # 查找现有配置或创建新配置
+        config = await self.get_user_config(user_id, provider_id)
         if not config:
+            config = UserProviderConfig(user_id=user_id, provider_id=provider_id)
+            self.session.add(config)
+        
+        # 更新字段
+        if "api_key" in data:
+            # 如果提供了 API Key，则进行哈希存储；如果为空字符串，则可能意图清除（视业务逻辑而定）
+            if data["api_key"]:
+                config.api_key = hash_api_key(data["api_key"])
+            else:
+                config.api_key = None # 允许清除
+                
+        if "base_url" in data:
+            # 如果是空字符串，设为 None 以使用系统默认
+            config.base_url_override = data["base_url"] if data["base_url"] else None
+            
+        if "is_enabled" in data:
+            config.is_enabled = data["is_enabled"]
+            
+        await self.session.flush()
+        return config
+
+    @require_login
+    async def verify_api_key(self, provider_id: UUID, api_key: str, base_url: Optional[str] = None, model_name: Optional[str] = None) -> Dict[str, Any]:
+        """验证供应商API Key是否有效
+        
+        策略：
+        1. 尝试使用 models.list() 接口。如果成功，说明 API Key 有效。
+        2. 如果 models.list() 失败 (某些供应商不支持或权限受限)，尝试发起一个极简的 Chat Completion 请求。
+        """
+        provider = await self.get(provider_id)
+        if not provider:
+            raise ResourceNotFoundException("供应商不存在")
+
+        # 使用提供的base_url或provider的默认base_url
+        test_base_url = base_url or provider.default_base_url
+
+        # 创建 AsyncOpenAI 客户端
+        # 注意：对于非 OpenAI 的供应商，它们通常也兼容 OpenAI SDK 协议
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=test_base_url,
+            timeout=10.0,
+            max_retries=1
+        )
+
+        # -------------------- 步骤 1: 尝试获取模型列表 --------------------
+        try:
+            await client.models.list()
+            return {
+                "valid": True,
+                "message": "API Key验证成功",
+                "method": "models.list"
+            }
+        except Exception as e1:
+            logging.warning(f"API Key verification via models.list failed: {str(e1)}. Trying fallback...")
+
+            try:
+                    await client.chat.completions.create(
+                        model=model_name,
+                        messages=[{"role": "user", "content": "Hi"}],
+                        max_tokens=1
+                    )
+                    return {
+                        "valid": True,
+                        "message": f"API Key验证成功",
+                        "method": "chat.completions.create"
+                    }
+            except Exception as e2:
+                    last_error = e2
+                    # 如果是认证错误 (401), 直接认定为失败，不再尝试其他模型
+                    error_str = str(e2).lower()
+                    if "401" in error_str or "unauthorized" in error_str or "invalid api key" in error_str:
+                        return {
+                            "valid": False,
+                            "message": f"验证失败: API Key 无效 ({str(e2)})"
+                        }
+            # 如果所有尝试都失败
+            return {
+                "valid": False,
+                "message": f"验证失败: 无法连接到服务或 API Key 无效。错误信息: {str(last_error) if last_error else str(e1)}"
+            }
+
+    async def create_provider_safe(self, data: ModelProviderCreate, user_id: UUID, is_admin: bool) -> SystemModelProvider:
+        """安全创建供应商
+        - 管理员：创建系统级供应商 (owner_id = None)
+        - 普通用户：创建私有供应商 (owner_id = user_id)
+        """
+        # 1. 检查是否存在同名供应商 (不区分大小写)
+        from sqlalchemy import func
+        target_name = data.name.lower()
+        
+        # 检查逻辑：如果是系统级，检查所有系统级；如果是私有，检查该用户的所有私有
+        # 或者更严格：全局不区分大小写唯一？
+        # 用户需求："无论是用户还是管理员，相同name的提供商不能创建成功" -> 全局唯一
+        
+        query = select(SystemModelProvider).where(func.lower(SystemModelProvider.name) == target_name)
+        existing = await self.session.exec(query)
+        if existing.first():
+            raise BusinessException(f"供应商 '{data.name}' 已存在 (不区分大小写)")
+
+        # 确定 owner_id
+        owner_id = None if is_admin else user_id
+
+        # 准备创建数据
+        create_data = data.model_dump()
+        create_data["owner_id"] = owner_id
+        
+        # 字段适配
+        db_data = create_data.copy()
+        if "base_url" in db_data:
+            db_data["default_base_url"] = db_data.pop("base_url")
+            
+        # 提取 API Key (不存入 SystemModelProvider)
+        api_key = db_data.pop("api_key", None)
+            
+        # 创建 Provider
+        provider = SystemModelProvider(**db_data)
+        self.session.add(provider)
+        await self.session.flush()
+        
+        # 如果有 API Key，创建 UserProviderConfig
+        if api_key and owner_id:
+            config = UserProviderConfig(
+                user_id=owner_id,
+                provider_id=provider.id,
+                api_key=hash_api_key(api_key),
+                is_enabled=True
+            )
+            self.session.add(config)
+            await self.session.flush()
+            
+        return provider
+
+    async def delete_provider_safe(self, provider_id: UUID, user_id: UUID, is_admin: bool) -> None:
+        """安全删除供应商
+        
+        删除策略：
+        1. 删除该供应商下的所有模型定义 (SystemModelDefinition)
+        2. 删除该供应商下的所有用户配置 (UserProviderConfig)
+        3. 删除供应商本身 (SystemModelProvider)
+        """
+        provider = await self.get(provider_id)
+        if not provider:
+            raise ResourceNotFoundException("供应商不存在")
+
+        # 权限检查
+        if not is_admin:
+            if str(provider.owner_id) != str(user_id):
+                # 既不是管理员，也不是拥有者
+                from app.src.response.exception.exceptions import AuthorizationException
+                raise AuthorizationException("无权删除此供应商")
+        
+        # 1. 删除关联的模型定义
+        stmt_models = select(SystemModelDefinition).where(SystemModelDefinition.provider_id == provider_id)
+        models = await self.session.exec(stmt_models)
+        for model in models.all():
+            # 删除模型关联的用户偏好
+            stmt_prefs = select(UserModelPreference).where(UserModelPreference.model_def_id == model.id)
+            prefs = await self.session.exec(stmt_prefs)
+            for pref in prefs.all():
+                await self.session.delete(pref)
+            
+            # 删除模型定义
+            await self.session.delete(model)
+            
+        # 2. 删除关联的用户供应商配置
+        stmt_configs = select(UserProviderConfig).where(UserProviderConfig.provider_id == provider_id)
+        configs = await self.session.exec(stmt_configs)
+        for config in configs.all():
+            await self.session.delete(config)
+            
+        # 3. 删除供应商
+        await self.delete(provider)
+
+    async def update_provider_safe(self, provider_id: UUID, data: ModelProviderUpdate, user_id: UUID, is_admin: bool) -> Any:
+        """安全更新供应商"""
+        # 1. 获取供应商
+        provider = await self.get(provider_id)
+        if not provider:
+             from app.src.response.exception.exceptions import ResourceNotFoundException
+             raise ResourceNotFoundException("供应商不存在")
+
+        # 2. 检查权限 (是否是拥有者)
+        is_owner = str(provider.owner_id) == str(user_id)
+        
+        # 准备用户配置更新数据
+        config_update_data = data.model_dump(exclude_unset=True)
+
+        if is_admin or is_owner:
+            # 管理员或拥有者：可以修改供应商元数据 (SystemModelProvider)
+            
+            update_dict = data.model_dump(exclude_unset=True)
+            sys_updated = False
+
+            # 特殊处理 base_url: 对于拥有者，修改的是 default_base_url
+            if "base_url" in update_dict:
+                 provider.default_base_url = update_dict["base_url"]
+                 sys_updated = True
+                 # 如果修改了默认地址，就不需要再设置覆盖地址了 (除非显式需要，但通常"编辑供应商"意为修改默认值)
+                 if "base_url" in config_update_data:
+                     del config_update_data["base_url"]
+
+            # 更新其他元数据字段
+            sys_fields = ["label", "description", "icon", "icon_background", "help_url", "supported_model_types", "position"]
+            for key in sys_fields:
+                if key in update_dict:
+                    setattr(provider, key, update_dict[key])
+                    sys_updated = True
+            
+            if sys_updated:
+                self.session.add(provider)
+                await self.session.flush()
+            
+            # 同时更新用户配置 (主要是 API Key 和 Enabled 状态)
+            # 注意：base_url 已被从 config_update_data 中移除 (如果存在)，所以不会更新 base_url_override
+            await self.update_user_config(provider_id, config_update_data)
+            
+            return provider # 返回 SystemModelProvider 对象
+            
+        else:
+            # 普通用户修改系统供应商：只能修改用户配置 (UserProviderConfig)
+            return await self.update_user_config(provider_id, config_update_data)
+
+
+
+class ModelConfigService(BaseService[SystemModelDefinition]):
+    """模型配置服务"""
+
+    def __init__(self, session: AsyncSession, provider_service: ModelProviderService):
+        super().__init__(SystemModelDefinition, session)
+        self.provider_service = provider_service
+
+    async def get_models_by_provider(self, provider_id: UUID, user_id: Optional[UUID] = None) -> List[Dict[str, Any]]:
+        """获取供应商下的所有模型（合并用户偏好）
+        包含：
+        1. 系统内置模型 (owner_id IS NULL)
+        2. 用户自定义模型 (owner_id == user_id)
+        """
+        # 1. 构建查询：获取系统模型 + 用户私有模型
+        from sqlmodel import or_
+        conditions = [SystemModelDefinition.provider_id == provider_id]
+        
+        owner_condition = SystemModelDefinition.owner_id == None
+        if user_id:
+            owner_condition = or_(SystemModelDefinition.owner_id == None, SystemModelDefinition.owner_id == user_id)
+        
+        conditions.append(owner_condition)
+        
+        query = select(SystemModelDefinition).where(*conditions).order_by(SystemModelDefinition.position)
+        
+        result = await self.session.exec(query)
+        all_models = list(result.all())
+        
+        # 2. 如果没有用户ID，直接返回系统定义 (此时也只查到了系统定义)
+        if not user_id:
+            return all_models
+
+        # 3. 获取用户偏好 (仅针对系统模型，或者用户也可能对自己创建的模型有偏好记录？通常用户直接修改模型本身即可，但保持一致性也无妨)
+        # 这里主要为了获取系统模型的 enabled 状态覆盖等
+        pref_query = select(UserModelPreference).where(
+            UserModelPreference.user_id == user_id,
+            UserModelPreference.model_def_id.in_([m.id for m in all_models])
+        )
+        pref_result = await self.session.exec(pref_query)
+        user_prefs = {p.model_def_id: p for p in pref_result.all()}
+
+        # 4. 合并数据
+        merged_models = []
+        for m in all_models:
+            pref = user_prefs.get(m.id)
+            
+            # 判断是否是用户自定义模型
+            is_custom = m.owner_id == user_id
+            
+            # 基础数据
+            model_data = {
+                "id": m.id,
+                "provider_id": m.provider_id,
+                "model_name": m.model_name,
+                "label": m.label,
+                "description": m.description,
+                "model_type": m.model_type,
+                "features": m.features,
+                "context_window": m.context_window,
+                "default_max_tokens": m.default_max_tokens,
+                "default_parameters": m.default_parameters,
+                "position": m.position,
+                "is_enabled": m.is_enabled, # 系统级开关
+                "owner_id": m.owner_id,
+                "is_custom": is_custom,
+                "created_at": m.created_at,
+                "updated_at": m.updated_at
+            }
+            
+            # 应用用户偏好覆盖 (仅当有偏好记录时)
+            if pref:
+                # 即使是用户自定义模型，如果有了偏好记录，也应用偏好（虽然用户可以直接改模型，但为了逻辑统一）
+                model_data["is_enabled"] = pref.is_enabled 
+                
+                if pref.custom_parameters:
+                    custom = pref.custom_parameters
+                    if "context_window" in custom:
+                        model_data["context_window"] = custom["context_window"]
+                    if "default_max_tokens" in custom:
+                        model_data["default_max_tokens"] = custom["default_max_tokens"]
+                    if "temperature" in custom:
+                        model_data["default_parameters"]["temperature"] = custom["temperature"]
+                    # ... 其他参数 ...
+            
+            merged_models.append(model_data)
+            
+        return merged_models
+
+    async def update_user_model_preference(self, user_id: UUID, model_def_id: UUID, data: dict) -> UserModelPreference:
+        """更新用户对模型的偏好"""
+        # 检查模型是否存在
+        model_def = await self.get(model_def_id)
+        if not model_def:
+            raise ResourceNotFoundException("模型定义不存在")
+
+        # 查找或创建偏好
+        pref = await self.get_user_preference(user_id, model_def_id)
+        if not pref:
+            pref = UserModelPreference(user_id=user_id, model_def_id=model_def_id)
+            self.session.add(pref)
+            
+        # 更新字段
+        if "is_enabled" in data:
+            pref.is_enabled = data["is_enabled"]
+            
+        # 更新自定义参数
+        current_params = pref.custom_parameters or {}
+        
+        # 支持的覆盖字段
+        overrides = ["context_window", "default_max_tokens", "temperature", "top_p"]
+        for key in overrides:
+            if key in data:
+                current_params[key] = data[key]
+        
+        pref.custom_parameters = current_params
+        
+        await self.session.flush()
+        return pref
+
+    async def get_user_preference(self, user_id: UUID, model_def_id: UUID) -> Optional[UserModelPreference]:
+        """获取用户对模型的偏好"""
+        query = select(UserModelPreference).where(
+            UserModelPreference.user_id == user_id,
+            UserModelPreference.model_def_id == model_def_id
+        )
+        result = await self.session.exec(query)
+        return result.first()
+
+    async def create_model_config_safe(self, data: ModelConfigCreate, user_id: UUID, is_admin: bool) -> SystemModelDefinition:
+        """安全创建模型配置
+        - 管理员：可在任意供应商下创建模型 (默认创建为系统模型 owner_id=None，也可指定)
+        - 普通用户：
+            1. 在自己创建的供应商下创建模型 -> 设为私有 (owner_id=user_id)
+            2. 在系统供应商下创建模型 -> 设为私有 (owner_id=user_id)
+        """
+        # 检查供应商是否存在
+        provider = await self.provider_service.get(data.provider_id)
+        if not provider:
+            raise ResourceNotFoundException("供应商不存在")
+            
+        # 确定 owner_id
+        owner_id = None
+        if not is_admin:
+            # 普通用户创建的模型，所有者必须是自己
+            owner_id = user_id
+            
+            # 权限检查：
+            # 如果是私有供应商，必须是自己的
+            if str(provider.owner_id) and str(provider.owner_id) != str(user_id):
+                 from app.src.response.exception.exceptions import AuthorizationException
+                 raise AuthorizationException("无权在此私有供应商下创建模型")
+            # 如果是系统供应商(provider.owner_id is None)，允许创建，但模型本身必须是私有的(已设置 owner_id=user_id)
+
+        # 转换 Pydantic model 到 dict
+        create_data = data.model_dump()
+        create_data["owner_id"] = owner_id # 显式设置所有者
+        
+        # 手动创建 SystemModelDefinition 对象
+        config = SystemModelDefinition(**create_data)
+        
+        self.session.add(config)
+        await self.session.flush()
+        return config
+
+    async def update_model_config_safe(self, config_id: UUID, data: ModelConfigUpdate, user_id: UUID, is_admin: bool) -> Any:
+        """安全更新模型配置
+        - 管理员 OR 模型拥有者：更新系统定义
+        - 普通用户 & 非拥有者：更新用户偏好 (UserModelPreference)
+        """
+        # 检查模型是否存在
+        sys_model = await self.get(config_id)
+        if not sys_model:
+             raise ResourceNotFoundException("模型配置不存在")
+
+        # 检查所有权
+        # 模型本身的 owner_id 决定了归属
+        is_owner = str(sys_model.owner_id) == str(user_id)
+    
+        if is_admin or is_owner:
+            # 管理员或拥有者：直接更新定义
+            
+            # 更新实例字段 
+            update_dict = data.model_dump(exclude_unset=True) 
+            for key, value in update_dict.items(): 
+                if hasattr(sys_model, key): 
+                    setattr(sys_model, key, value) 
+            
+            # 调用 update 
+            return await self.update(sys_model) 
+        else: 
+            # 普通用户修改系统模型(owner_id=None) 或 他人模型：更新偏好 
+            update_data = data.model_dump(exclude_unset=True) 
+            
+            # 提取支持覆盖的字段 
+            pref_data = {} 
+            if "is_enabled" in update_data: 
+                pref_data["is_enabled"] = update_data["is_enabled"] 
+            # 参数映射 
+            if "context_window" in update_data: 
+                pref_data["context_window"] = update_data["context_window"] 
+            if "default_max_tokens" in update_data: 
+                pref_data["default_max_tokens"] = update_data["default_max_tokens"] 
+            if "default_temperature" in update_data: 
+                pref_data["temperature"] = update_data["default_temperature"] 
+            if "default_top_p" in update_data: 
+                pref_data["top_p"] = update_data["default_top_p"] 
+                
+            return await self.update_user_model_preference(user_id, config_id, pref_data)
+
+    async def delete_model_config_safe(self, config_id: UUID, user_id: UUID, is_admin: bool) -> None:
+        """安全删除模型配置
+        - 管理员：可以删除任何模型
+        - 普通用户：只能删除自己创建的模型 (model.owner_id == user_id)
+        """
+        model = await self.get(config_id)
+        if not model:
             raise ResourceNotFoundException("模型配置不存在")
 
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(config, key, value)
+        if not is_admin:
+            # 权限检查：必须是模型的所有者
+            if str(model.owner_id) != str(user_id):
+                # 尝试删除系统模型或其他用户的模型
+                from app.src.response.exception.exceptions import AuthorizationException
+                raise AuthorizationException("无权删除此模型配置")
 
-        return await self.update(config)
-
-    @require_roles("admin", "super_admin")
-    async def delete_model_config(self, config_id: UUID) -> None:
-        """删除模型配置（需要管理员权限）"""
-        config = await self.get(config_id)
-        if not config:
-            raise ResourceNotFoundException("模型配置不存在")
-
-        await self.delete(config)
+        await self.delete(model)
 
     async def init_default_models(self) -> None:
         """初始化默认模型配置"""
         await self.provider_service.init_default_providers()
 
-        query = select(ModelConfig).limit(1)
+        query = select(SystemModelDefinition).limit(1)
         result = await self.session.exec(query)
         if result.first():
             return
@@ -192,349 +558,92 @@ class ModelConfigService(BaseService[ModelConfig]):
             data = deepcopy(model_data)
             provider_name = data.pop("provider_name")
             provider_id = provider_map.get(provider_name)
+            
             if provider_id:
-                model_config = ModelConfig(provider_id=provider_id, **data)
+                # 适配字段
+                data.pop("is_builtin", None)
+                data.pop("user_id", None)
+                data.pop("template_id", None)
+                
+                model_config = SystemModelDefinition(provider_id=provider_id, **data)
                 self.session.add(model_config)
 
         await self.session.flush()
 
-    @require_login
-    async def get_my_configs(self, enabled_only: bool = True) -> List[UserModelConfig]:
-        """获取当前用户的所有模型配置"""
-        user_id = get_current_user_id()
-        return await self._get_user_configs(user_id, enabled_only)
-
-    @require_login
-    async def get_my_default_config(self) -> Optional[UserModelConfig]:
-        """获取当前用户的默认模型配置"""
-        user_id = get_current_user_id()
-        return await self._get_default_config(user_id)
-
-    @require_login
-    async def create_my_config(self, data: UserModelConfigCreate) -> UserModelConfig:
-        """当前用户创建模型配置"""
-        user_id = get_current_user_id()
-        return await self._create_user_config(user_id, data)
-
-    @require_login
-    async def update_my_config(self, config_id: UUID, data: UserModelConfigUpdate) -> UserModelConfig:
-        """当前用户更新模型配置"""
-        user_id = get_current_user_id()
-        return await self._update_user_config(config_id, user_id, data)
-
-    @require_login
-    async def delete_my_config(self, config_id: UUID) -> None:
-        """当前用户删除模型配置"""
-        user_id = get_current_user_id()
-        await self._delete_user_config(config_id, user_id)
-
-    @require_login
-    async def set_my_default(self, config_id: UUID) -> UserModelConfig:
-        """当前用户设置默认配置"""
-        user_id = get_current_user_id()
-        return await self._set_default(config_id, user_id)
-
-    # ========== 内部方法 ==========
-
-    async def _get_user_configs(self, user_id: UUID, enabled_only: bool = True) -> List[UserModelConfig]:
-        """内部方法：获取用户的所有模型配置"""
-        query = select(UserModelConfig).where(UserModelConfig.user_id == user_id)
-        if enabled_only:
-            query = query.where(UserModelConfig.is_enabled == True)
-        result = await self.session.exec(query)
-        return list(result.all())
-
-    async def _get_default_config(self, user_id: UUID) -> Optional[UserModelConfig]:
-        """内部方法：获取用户的默认模型配置"""
-        query = select(UserModelConfig).where(
-            UserModelConfig.user_id == user_id,
-            UserModelConfig.is_default == True,
-            UserModelConfig.is_enabled == True
-        )
-        result = await self.session.exec(query)
-        return result.first()
-
-    async def _get_config_by_provider(self, user_id: UUID, provider_id: UUID) -> Optional[UserModelConfig]:
-        """内部方法：获取用户在指定供应商的配置"""
-        query = select(UserModelConfig).where(
-            UserModelConfig.user_id == user_id,
-            UserModelConfig.provider_id == provider_id,
-            UserModelConfig.is_enabled == True
-        )
-        result = await self.session.exec(query)
-        return result.first()
-
-    async def _create_user_config(self, user_id: UUID, data: UserModelConfigCreate) -> UserModelConfig:
-        """内部方法：创建用户模型配置"""
-        provider = await self.provider_service.get(data.provider_id)
-        if not provider or not provider.is_enabled:
-            raise BusinessException("供应商不存在或未启用")
-
-        if data.model_config_id:
-            stmt=select(UserModelConfig).where(
-                UserModelConfig.model_config_id==data.model_config_id
-            )
-            result = await self.session.exec(stmt)
-            model_config=result.one_or_none()
-            if not model_config or model_config.provider_id != data.provider_id:
-                raise BusinessException("模型配置不存在或不属于该供应商")
-
-        if data.is_default:
-            await self._clear_default(user_id)
-
-        config = UserModelConfig(user_id=user_id, **data.model_dump())
-        self.session.add(config)
-        await self.session.flush()
-        await self.session.refresh(config)
-        return config
-    async def _update_user_config(self, config_id: UUID, user_id: UUID, data: UserModelConfigUpdate) -> UserModelConfig:
-        """内部方法：更新用户模型配置"""
-        config = await self.session.get(UserModelConfig,config_id)
-        if not config or config.user_id != user_id:
-            raise ResourceNotFoundException("配置不存在")
-
-        if data.is_default:
-            await self._clear_default(user_id)
-
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(config, key, value)
-        self.session.add(config)
-        await self.session.flush()
-        await self.session.refresh(config)
-        return config
-
-
-    async def _delete_user_config(self, config_id: UUID, user_id: UUID) -> None:
-        """内部方法：删除用户模型配置"""
-        config = await self.session.get(UserModelConfig, config_id)
-        if not config or config.user_id != user_id:
-            raise ResourceNotFoundException("配置不存在")
-
-        await self.session.delete(config)
-        await self.session.flush()
-
-    async def _set_default(self, config_id: UUID, user_id: UUID) -> UserModelConfig:
-        """内部方法：设置为默认配置"""
-        config = await self.session.get(UserModelConfig, config_id)
-        if not config or config.user_id != user_id:
-            raise ResourceNotFoundException("配置不存在")
-
-        await self._clear_default(user_id)
-        config.is_default = True
-        self.session.add(config)
-        await self.session.flush()
-        await self.session.refresh(config)
-        return config
-
-    async def _clear_default(self, user_id: UUID) -> None:
-        """清除用户的所有默认配置"""
-        query = select(UserModelConfig).where(
-            UserModelConfig.user_id == user_id,
-            UserModelConfig.is_default == True
-        )
-        result = await self.session.exec(query)
-        for config in result.all():
-            config.is_default = False
-            self.session.add(config)
-        await self.session.flush()
-
-    async def get_default_config(self, user_id: UUID) -> Optional[UserModelConfig]:
-        """获取用户的默认模型配置（兼容旧接口）"""
-        return await self._get_default_config(user_id)
-
-    async def get_config_by_provider(self, user_id: UUID, provider_id: UUID) -> Optional[UserModelConfig]:
-        """获取用户在指定供应商的配置（兼容旧接口）"""
-        return await self._get_config_by_provider(user_id, provider_id)
-
-
-# ==================== 用户服务 ====================
-#
-# class UserModelConfigService(BaseService[UserModelConfig]):
-#     """用户模型配置服务"""
-#
-#     def __init__(self,
-#                  session: AsyncSession,
-#                  model_config_service:ModelConfigService
-#                  ):
-#         super().__init__(UserModelConfig, session)
-#         self.model_service = model_config_service
-#
-#     # ========== 用户方法（带装饰器） ==========
-#
-#     @require_login
-#     async def get_my_configs(self, enabled_only: bool = True) -> List[UserModelConfig]:
-#         """获取当前用户的所有模型配置"""
-#         user_id = get_current_user_id()
-#         return await self._get_user_configs(user_id, enabled_only)
-#
-#     @require_login
-#     async def get_my_default_config(self) -> Optional[UserModelConfig]:
-#         """获取当前用户的默认模型配置"""
-#         user_id = get_current_user_id()
-#         return await self._get_default_config(user_id)
-#
-#     @require_login
-#     async def create_my_config(self, data: UserModelConfigCreate) -> UserModelConfig:
-#         """当前用户创建模型配置"""
-#         user_id = get_current_user_id()
-#         return await self._create_user_config(user_id, data)
-#
-#     @require_login
-#     async def update_my_config(self, config_id: UUID, data: UserModelConfigUpdate) -> UserModelConfig:
-#         """当前用户更新模型配置"""
-#         user_id = get_current_user_id()
-#         return await self._update_user_config(config_id, user_id, data)
-#
-#     @require_login
-#     async def delete_my_config(self, config_id: UUID) -> None:
-#         """当前用户删除模型配置"""
-#         user_id = get_current_user_id()
-#         await self._delete_user_config(config_id, user_id)
-#
-#     @require_login
-#     async def set_my_default(self, config_id: UUID) -> UserModelConfig:
-#         """当前用户设置默认配置"""
-#         user_id = get_current_user_id()
-#         return await self._set_default(config_id, user_id)
-#
-#     # ========== 内部方法 ==========
-#
-#     async def _get_user_configs(self, user_id: UUID, enabled_only: bool = True) -> List[UserModelConfig]:
-#         """内部方法：获取用户的所有模型配置"""
-#         query = select(UserModelConfig).where(UserModelConfig.user_id == user_id)
-#         if enabled_only:
-#             query = query.where(UserModelConfig.is_enabled == True)
-#         result = await self.session.exec(query)
-#         return list(result.all())
-#
-#     async def _get_default_config(self, user_id: UUID) -> Optional[UserModelConfig]:
-#         """内部方法：获取用户的默认模型配置"""
-#         query = select(UserModelConfig).where(
-#             UserModelConfig.user_id == user_id,
-#             UserModelConfig.is_default == True,
-#             UserModelConfig.is_enabled == True
-#         )
-#         result = await self.session.exec(query)
-#         return result.first()
-#
-#     async def _get_config_by_provider(self, user_id: UUID, provider_id: UUID) -> Optional[UserModelConfig]:
-#         """内部方法：获取用户在指定供应商的配置"""
-#         query = select(UserModelConfig).where(
-#             UserModelConfig.user_id == user_id,
-#             UserModelConfig.provider_id == provider_id,
-#             UserModelConfig.is_enabled == True
-#         )
-#         result = await self.session.exec(query)
-#         return result.first()
-#
-#     async def _create_user_config(self, user_id: UUID, data: UserModelConfigCreate) -> UserModelConfig:
-#         """内部方法：创建用户模型配置"""
-#         provider = await self.model_service.provider_service.get(data.provider_id)
-#         if not provider or not provider.is_enabled:
-#             raise BusinessException("供应商不存在或未启用")
-#
-#         if data.model_config_id:
-#             model_config = await self.model_service.get(data.model_config_id)
-#             if not model_config or model_config.provider_id != data.provider_id:
-#                 raise BusinessException("模型配置不存在或不属于该供应商")
-#
-#         if data.is_default:
-#             await self._clear_default(user_id)
-#
-#         config = UserModelConfig(user_id=user_id, **data.model_dump())
-#         return await self.create(config)
-#
-#     async def _update_user_config(self, config_id: UUID, user_id: UUID, data: UserModelConfigUpdate) -> UserModelConfig:
-#         """内部方法：更新用户模型配置"""
-#         config = await self.get(config_id)
-#         if not config or config.user_id != user_id:
-#             raise ResourceNotFoundException("配置不存在")
-#
-#         if data.is_default:
-#             await self._clear_default(user_id)
-#
-#         update_data = data.model_dump(exclude_unset=True)
-#         for key, value in update_data.items():
-#             setattr(config, key, value)
-#
-#         return await self.update(config)
-#
-#     async def _delete_user_config(self, config_id: UUID, user_id: UUID) -> None:
-#         """内部方法：删除用户模型配置"""
-#         config = await self.get(config_id)
-#         if not config or config.user_id != user_id:
-#             raise ResourceNotFoundException("配置不存在")
-#
-#         await self.delete(config)
-#
-#     async def _set_default(self, config_id: UUID, user_id: UUID) -> UserModelConfig:
-#         """内部方法：设置为默认配置"""
-#         config = await self.get(config_id)
-#         if not config or config.user_id != user_id:
-#             raise ResourceNotFoundException("配置不存在")
-#
-#         await self._clear_default(user_id)
-#         config.is_default = True
-#         return await self.update(config)
-#
-#     async def _clear_default(self, user_id: UUID) -> None:
-#         """清除用户的所有默认配置"""
-#         query = select(UserModelConfig).where(
-#             UserModelConfig.user_id == user_id,
-#             UserModelConfig.is_default == True
-#         )
-#         result = await self.session.exec(query)
-#         for config in result.all():
-#             config.is_default = False
-#             self.session.add(config)
-#         await self.session.flush()
-#
-#
-#     async def get_default_config(self, user_id: UUID) -> Optional[UserModelConfig]:
-#         """获取用户的默认模型配置（兼容旧接口）"""
-#         return await self._get_default_config(user_id)
-#
-#     async def get_config_by_provider(self, user_id: UUID, provider_id: UUID) -> Optional[UserModelConfig]:
-#         """获取用户在指定供应商的配置（兼容旧接口）"""
-#         return await self._get_config_by_provider(user_id, provider_id)
-
-
-
-
-# ==================== 整合服务 ====================
 
 class LanguageModelService:
-    """语言模型服务（整合管理员和用户功能）"""
+    """语言模型服务（整合系统定义与用户配置）"""
 
-    def __init__(self, session: AsyncSession,model_config_service:ModelConfigService):
+    def __init__(self, session: AsyncSession, model_config_service: ModelConfigService):
         self.session = session
-
         self.model_config_service = model_config_service
 
     # ---------- 公共接口：获取供应商和模型列表 ----------
 
-    async def get_providers_with_models(self) -> List[Dict[str, Any]]:
-        """获取所有启用的供应商及其模型列表（给前端用）"""
-        providers = await self.model_config_service.provider_service.get_all_providers()
+    async def get_providers_with_models(self, user_id: Optional[UUID] = None) -> List[Dict[str, Any]]:
+        """获取所有系统供应商及其模型列表，并填充用户配置"""
+        
+        # 1. 获取所有系统供应商
+        providers = await self.model_config_service.provider_service.get_all_providers(user_id=user_id)
+        
+        # 2. 如果有用户ID，批量获取用户配置
+        user_configs_map = {}
+        if user_id:
+            query = select(UserProviderConfig).where(UserProviderConfig.user_id == user_id)
+            result = await self.session.exec(query)
+            for cfg in result.all():
+                user_configs_map[cfg.provider_id] = cfg
 
         result = []
         for provider in providers:
-            models = await self.model_config_service.get_models_by_provider(provider.id)
-
-            result.append({
+            # 获取该供应商下的模型
+            models = await self.model_config_service.get_models_by_provider(provider.id, user_id=user_id)
+            
+            # 获取用户配置
+            user_cfg = user_configs_map.get(provider.id)
+            
+            # 构建返回数据（保持与前端原有结构兼容）
+            provider_data = {
                 "id": str(provider.id),
                 "name": provider.name,
                 "label": provider.label,
                 "description": provider.description,
                 "icon": provider.icon,
                 "icon_background": provider.icon_background,
-                "default_base_url": provider.default_base_url,
                 "supported_model_types": provider.supported_model_types,
                 "help_url": provider.help_url,
-                "is_builtin": provider.is_builtin,
-                "models": [
-                    {
+                "position": provider.position,
+                "is_builtin": provider.owner_id is None, # 如果没有 owner_id，则是系统内置的
+                
+                # 动态字段：根据用户配置填充
+                "base_url": user_cfg.base_url_override if user_cfg and user_cfg.base_url_override else provider.default_base_url,
+                "api_key": user_cfg.api_key if user_cfg else None, # 前端需要知道是否有API Key
+                "is_enabled": user_cfg.is_enabled if user_cfg else True, # 默认启用
+            }
+            
+            # 构建模型列表
+            models_data = []
+            for m in models:
+                # m 可能是 SystemModelDefinition 对象（如果是管理员调用）或者 dict（如果是普通用户调用）
+                # 为了统一，我们检查类型
+                if isinstance(m, dict):
+                    models_data.append({
+                        "id": str(m["id"]),
+                        "model_name": m["model_name"],
+                        "label": m["label"],
+                        "description": m["description"],
+                        "model_type": m["model_type"],
+                        "features": m["features"],
+                        "context_window": m["context_window"],
+                        "default_temperature": m["default_parameters"].get("temperature", 0.7),
+                        "default_top_p": m["default_parameters"].get("top_p", 1.0),
+                        "default_max_tokens": m["default_max_tokens"],
+                        "is_builtin": True,
+                        "is_enabled": m["is_enabled"]
+                    })
+                else:
+                    # SystemModelDefinition object
+                    models_data.append({
                         "id": str(m.id),
                         "model_name": m.model_name,
                         "label": m.label,
@@ -542,152 +651,22 @@ class LanguageModelService:
                         "model_type": m.model_type,
                         "features": m.features,
                         "context_window": m.context_window,
-                        "max_output_tokens": m.max_output_tokens,
-                        "default_temperature": m.default_temperature,
-                        "default_top_p": m.default_top_p,
+                        "default_temperature": m.default_parameters.get("temperature", 0.7),
+                        "default_top_p": m.default_parameters.get("top_p", 1.0),
                         "default_max_tokens": m.default_max_tokens,
-                        "pricing": m.pricing,
-                    }
-                    for m in models
-                ],
-            })
-
-        return result
-
-    # ---------- 模型加载 ----------
-
-    async def load_language_model(
-        self,
-        user_id: UUID,
-        provider_name: Optional[str] = None,
-        model_name: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None
-    ) -> BaseLanguageModel:
-        """
-        加载用户配置的语言模型
-
-        Args:
-            user_id: 用户ID
-            provider_name: 供应商名称（可选，不传则使用用户默认配置）
-            model_name: 模型名称（可选）
-            parameters: 额外参数（可选）
-
-        Returns:
-            BaseLanguageModel 实例
-        """
-        try:
-            # 1. 获取用户配置
-            if provider_name:
-                provider = await self.model_config_service.provider_service.get_provider_by_name(provider_name)
-                if not provider:
-                    raise BusinessException(f"供应商 '{provider_name}' 不存在")
-                user_config = await self.model_config_service.get_config_by_provider(
-                    user_id, provider.id
-                )
-            else:
-                user_config = await self.model_config_service.get_default_config(user_id)
-
-            if not user_config:
-                raise BusinessException("用户未配置模型，请先在个人中心配置 API Key")
-
-            # 2. 获取供应商信息
-            provider = await self.model_config_service.provider_service.get(user_config.provider_id)
-            if not provider:
-                raise BusinessException("供应商配置已失效")
-
-            # 3. 确定模型名称和参数
-            if user_config.model_config_id:
-                # 使用内置模型配置
-                model_config = await self.model_config_service.get(user_config.model_config_id)
-                actual_model_name = model_config.model_name if model_config else model_name
-                default_params = self._get_model_defaults(model_config)
-                attributes = model_config.attributes if model_config else {}
-                features = model_config.features if model_config else []
-                metadata = {"pricing": model_config.pricing} if model_config and model_config.pricing else {}
-            else:
-                # 使用自定义模型
-                actual_model_name = user_config.custom_model_name or model_name
-                default_params = {}
-                attributes = {"model": actual_model_name}
-                features = []
-                metadata = {}
-
-            if not actual_model_name:
-                raise BusinessException("未指定模型名称")
-
-            # 4. 合并参数（优先级：调用参数 > 用户配置 > 内置默认值）
-            final_params = self._merge_parameters(
-                default_params,
-                user_config,
-                parameters or {}
-            )
-
-            # 5. 获取模型类
-            model_class = get_chat_class(provider.name)
-            if not model_class:
-                raise BusinessException(f"不支持的供应商: {provider.name}")
-
-            # 6. 确定 base_url
-            base_url = user_config.base_url or provider.default_base_url or ""
-
-            # 7. 实例化模型
-            return model_class(
-                api_key=user_config.api_key,
-                base_url=base_url,
-                **attributes,
-                **final_params,
-                features=[ModelFeature(f) for f in features] if features else [],
-                metadata=metadata,
-            )
-
-        except BusinessException:
-            raise
-        except Exception as error:
-            logging.error(f"加载模型失败: {error}", exc_info=True)
-            raise BusinessException(f"加载模型失败: {str(error)}")
-
-    def _get_model_defaults(self, model_config: Optional[ModelConfig]) -> Dict[str, Any]:
-        """获取模型默认参数"""
-        if not model_config:
-            return {}
-
-        return {
-            "temperature": model_config.default_temperature,
-            "top_p": model_config.default_top_p,
-            "max_tokens": model_config.default_max_tokens,
-            **model_config.default_parameters,
-        }
-
-    def _merge_parameters(
-        self,
-        defaults: Dict[str, Any],
-        user_config: UserModelConfig,
-        call_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        合并参数
-
-        优先级：调用参数 > 用户配置 > 内置默认值
-        """
-        result = {**defaults}
-
-        # 用户配置覆盖
-        if user_config.custom_temperature is not None:
-            result["temperature"] = user_config.custom_temperature
-        if user_config.custom_top_p is not None:
-            result["top_p"] = user_config.custom_top_p
-        if user_config.custom_max_tokens is not None:
-            result["max_tokens"] = user_config.custom_max_tokens
-        if user_config.custom_parameters:
-            result.update(user_config.custom_parameters)
-
-        # 调用参数覆盖
-        result.update(call_params)
+                        "is_builtin": True,
+                        "is_enabled": m.is_enabled
+                    })
+            
+            provider_data["models"] = models_data
+            result.append(provider_data)
 
         return result
 
     # ---------- 初始化 ----------
 
     async def init_default_data(self) -> None:
-        """初始化默认数据（管理员首次启动时调用）"""
+        """初始化默认数据"""
         await self.model_config_service.init_default_models()
+
+

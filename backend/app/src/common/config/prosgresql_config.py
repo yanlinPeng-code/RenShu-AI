@@ -65,18 +65,13 @@ class PostgreSQLAsyncSessionManager:
 
         session = self.async_session_factory()
         try:
-            # 使用 session.begin() 开启事务上下文
-            # 它会自动处理 commit (成功时) 和 rollback (异常时)
-            # 并且能正确处理 BaseException
-            async with session.begin():
-                logger.debug(f"🔄 开启新事务，会话ID: {id(session)}")
-                yield session
-
-            # 注意：离开 async with session.begin() 块时会自动 commit
-            logger.debug(f"✅ 事务自动提交成功，会话ID: {id(session)}")
-
+            # 自动管理事务
+            yield session
+            # 如果没有异常，提交事务
+            await session.commit()
         except Exception as e:
-            # 这里的 rollback 是多重保险，session.begin 已经处理了
+            # 发生异常，回滚事务
+            await session.rollback()
             logger.error(f"❌ 数据库事务失败: {str(e)}", exc_info=True)
             raise
         finally:
@@ -180,18 +175,19 @@ async def create_db_tables():
     # 导入模型以确保它们被注册到 SQLModel.metadata
     # 从统一入口导入所有模型
     from app.src.model import (
+        UserProviderConfig
         # 用户相关模型
-        User, Patient, UserSession, UserState, UserActivity, RefreshToken,
+        # User, Patient, UserSession, UserState, UserActivity, RefreshToken,
         # 对话相关模型
-        Conversation, Message,
-        # 医疗相关模型
-        MedicalCase, Symptom, Syndrome, MedicalRecord, TongueAnalysis,
-        PrescriptionRecommendation,
-        # 药材相关模型
-        Herb, HerbInventory, Prescription, ClassicText,
-        # 系统相关模型
-        SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
-        AuditLog, BackupInfo, SystemInfo
+        # Conversation, Message,
+        # # 医疗相关模型
+        # MedicalCase, Symptom, Syndrome, MedicalRecord, TongueAnalysis,
+        # PrescriptionRecommendation,
+        # # 药材相关模型
+        # Herb, HerbInventory, Prescription, ClassicText,
+        # # 系统相关模型
+        # SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
+        # AuditLog, BackupInfo, SystemInfo
     )
 
     if async_db_manager.async_engine is None:
@@ -203,29 +199,29 @@ async def create_db_tables():
         logger.info("数据库表创建/检查完成")
 
 
-async def drop_db_tables():
-    """删除所有 SQLModel 表"""
-    # 导入模型以确保它们被注册到 SQLModel.metadata
-    # 从统一入口导入所有模型
-    from app.src.model import (
-        # 用户相关模型
-        User, Patient, UserSession, UserState, UserActivity, RefreshToken,
-        # 对话相关模型
-        Conversation, Message,
-        # 医疗相关模型
-        MedicalCase, Symptom, Syndrome, MedicalRecord, TongueAnalysis,
-        PrescriptionRecommendation,
-        # 药材相关模型
-        Herb, HerbInventory, Prescription, ClassicText,
-        # 系统相关模型
-        SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
-        AuditLog, BackupInfo, SystemInfo
-    )
-
-    if async_db_manager.async_engine is None:
-        raise Exception("请先初始化数据库连接")
-
-    async with async_db_manager.async_engine.begin() as conn:
-        # 删除所有表
-        await conn.run_sync(lambda sync_conn: SQLModel.metadata.drop_all(sync_conn))
-        logger.info("数据库表删除成功")
+# async def drop_db_tables():
+#     """删除所有 SQLModel 表"""
+#     # 导入模型以确保它们被注册到 SQLModel.metadata
+#     # 从统一入口导入所有模型
+#     from app.src.model import (
+#         # 用户相关模型
+#         User, Patient, UserSession, UserState, UserActivity, RefreshToken,
+#         # 对话相关模型
+#         Conversation, Message,
+#         # 医疗相关模型
+#         MedicalCase, Symptom, Syndrome, MedicalRecord, TongueAnalysis,
+#         PrescriptionRecommendation,
+#         # 药材相关模型
+#         Herb, HerbInventory, Prescription, ClassicText,
+#         # 系统相关模型
+#         SystemConfig, SystemStats, DatabaseStats, HealthCheck, LogEntry,
+#         AuditLog, BackupInfo, SystemInfo
+#     )
+#
+#     if async_db_manager.async_engine is None:
+#         raise Exception("请先初始化数据库连接")
+#
+#     async with async_db_manager.async_engine.begin() as conn:
+#         # 删除所有表
+#         await conn.run_sync(lambda sync_conn: SQLModel.metadata.drop_all(sync_conn))
+#         logger.info("数据库表删除成功")

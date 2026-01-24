@@ -170,10 +170,10 @@ class ResponseFactory:
                           host_id: str = None) -> Union[SuccessResponse[T], ErrorResponse]:
         """从响应码创建响应"""
         code_info = response_code._code_info
-        
+
         if response_code.http_status < 400:
             return self.success(
-                data=data if data else details,
+                data=data if data is not None else details,
                 code=code_info.code,
                 message=message,
                 request_id=request_id,

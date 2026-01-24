@@ -7,9 +7,12 @@ from app.src.response.exception.global_exception import GlobalReOrExHandler
 from app.src.common.config.prosgresql_config import async_db_manager
 from app.src.response.response_middleware import ResponseMiddleware
 from app.src.utils import get_logger
-from app.src.controller import user_router, admin_router, model_config_router
+from app.src.controller import account_router, model_config_router
 from app.src.middleware.auth_middleware import AuthContextMiddleware
+
 from app.src.common.config.prosgresql_config import create_db_tables
+
+# from app.src.common.config.prosgresql_config import create_db_tables
 
 # 创建日志记录器
 logger = get_logger("app")
@@ -59,8 +62,7 @@ async def register_router(app:FastAPI):
     #这里注册的是新版本的路由。
 
     logger.info("正在注册路由")
-    app.include_router(user_router)
-    app.include_router(admin_router)
+    app.include_router(account_router)
     app.include_router(model_config_router)
     logger.info("注册路由完成")
 
